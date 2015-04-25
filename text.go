@@ -28,7 +28,7 @@ func (c *Ctx) TextPut(bulk *Obj, str string) error {
 		cStr,
 		C.uint(cStrLen))
 	if rc != SUCCESS {
-		return Error(rc)
+		return errorFromRc(rc)
 	}
 	return nil
 }

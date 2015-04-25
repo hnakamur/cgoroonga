@@ -10,7 +10,7 @@ import "unsafe"
 func CtxOpen(flags int) (*Ctx, error) {
 	ctx := C.grn_ctx_open(C.int(flags))
 	if ctx == nil {
-		return nil, Error(UNKNOWN_ERROR) //TODO: change error code
+		return nil, CtxOpenError
 	}
 	return (*Ctx)(unsafe.Pointer(ctx)), nil
 }
@@ -18,7 +18,7 @@ func CtxOpen(flags int) (*Ctx, error) {
 func (c *Ctx) Close() error {
 	rc := C.grn_ctx_close((*C.struct__grn_ctx)(unsafe.Pointer(c)))
 	if rc != SUCCESS {
-		return Error(rc)
+		return errorFromRc(rc)
 	}
 	return nil
 }

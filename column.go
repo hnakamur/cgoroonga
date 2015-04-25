@@ -31,7 +31,7 @@ func (c *Ctx) ColumnOpenOrCreate(table *Obj, name string, path string, flags Obj
 			C.grn_obj_flags(flags),
 			(*C.struct__grn_obj)(unsafe.Pointer(columnType)))
 		if column == nil {
-			return nil, Error(UNKNOWN_ERROR) //TODO: change error code
+			return nil, ColumnCreateError
 		}
 	}
 	return (*Obj)(unsafe.Pointer(column)), nil

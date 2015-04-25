@@ -13,7 +13,7 @@ func (c *Ctx) ObjClose(obj *Obj) error {
 		(*C.struct__grn_obj)(unsafe.Pointer(obj)),
 	)
 	if rc != SUCCESS {
-		return Error(rc)
+		return errorFromRc(rc)
 	}
 	return nil
 }
@@ -27,7 +27,7 @@ func (c *Ctx) ObjSetValue(obj *Obj, recordID ID, value *Obj, flags int) error {
 		C.int(flags),
 	)
 	if rc != SUCCESS {
-		return Error(rc)
+		return errorFromRc(rc)
 	}
 	return nil
 }

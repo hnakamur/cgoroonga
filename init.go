@@ -9,7 +9,7 @@ import "C"
 func Init() error {
 	rc := C.grn_init()
 	if rc != SUCCESS {
-		return Error(rc)
+		return errorFromRc(rc)
 	}
 	return nil
 }
@@ -17,7 +17,7 @@ func Init() error {
 func Fin() error {
 	rc := C.grn_fin()
 	if rc != SUCCESS {
-		return Error(rc)
+		return errorFromRc(rc)
 	}
 	return nil
 }

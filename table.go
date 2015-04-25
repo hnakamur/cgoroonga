@@ -29,7 +29,7 @@ func (c *Ctx) TableOpenOrCreate(name string, path string, flags ObjFlags, keyTyp
 			(*C.struct__grn_obj)(unsafe.Pointer(keyType)),
 			(*C.struct__grn_obj)(unsafe.Pointer(valueType)))
 		if table == nil {
-			return nil, Error(UNKNOWN_ERROR) //TODO: change error code
+			return nil, TableCreateError
 		}
 	}
 	return (*Obj)(unsafe.Pointer(table)), nil

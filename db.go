@@ -18,7 +18,7 @@ func (c *Ctx) DBOpenOrCreate(path string, optarg *CreateOptArg) (*Obj, error) {
 		),
 	))
 	if db == nil {
-		return nil, Error(UNKNOWN_ERROR) //TODO: change error code
+		return nil, DBCreateError
 	}
 	return db, nil
 }
