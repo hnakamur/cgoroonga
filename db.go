@@ -29,12 +29,7 @@ func (c *Ctx) WithDB(path string, optarg *CreateOptArg, handler func(ctx *Ctx, d
 	if err != nil {
 		return
 	}
-	defer func() {
-		err2 := c.ObjClose(db)
-		if err2 != nil && err == nil {
-			err = err2
-		}
-	}()
+	defer c.ObjCloseDefer(&err, db)
 
 	return handler(c, db)
 }

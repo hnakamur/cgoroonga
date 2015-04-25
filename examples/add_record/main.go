@@ -14,12 +14,7 @@ func handler(ctx *grn.Ctx, db *grn.Obj) (err error) {
 		return
 	}
 	fmt.Printf("table=%x\n", table)
-	defer func() {
-		err2 := ctx.ObjClose(table)
-		if err2 != nil && err == nil {
-			err = err2
-		}
-	}()
+	defer ctx.ObjCloseDefer(&err, table)
 
 	columnType := ctx.At(grn.DB_TEXT)
 	column, err := ctx.ColumnOpenOrCreate(table, "col", "",
@@ -28,12 +23,7 @@ func handler(ctx *grn.Ctx, db *grn.Obj) (err error) {
 		return
 	}
 	fmt.Printf("column=%x\n", column)
-	defer func() {
-		err2 := ctx.ObjClose(column)
-		if err2 != nil && err == nil {
-			err = err2
-		}
-	}()
+	defer ctx.ObjCloseDefer(&err, column)
 
 	recordID, added, err := ctx.RecordAdd(table, "rec1")
 	if err != nil {

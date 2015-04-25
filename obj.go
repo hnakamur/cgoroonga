@@ -40,3 +40,10 @@ func (c *Ctx) ObjGetValue(obj *Obj, recordID ID, value *Obj) *Obj {
 		(*C.struct__grn_obj)(unsafe.Pointer(value)),
 	)))
 }
+
+func (c *Ctx) ObjCloseDefer(err *error, obj *Obj) {
+	err2 := c.ObjClose(obj)
+	if err2 != nil && *err == nil {
+		*err = err2
+	}
+}
