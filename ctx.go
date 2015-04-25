@@ -29,3 +29,29 @@ func (c *Ctx) At(id ID) *Obj {
 		C.grn_id(id))
 	return (*Obj)(unsafe.Pointer(obj))
 }
+
+func WithCtx(flags int, handler func(ctx *Ctx) error) (err error) {
+	err = Init()
+	if err != nil {
+		return
+	}
+	defer func() {
+		err2 := Fin()
+		if err2 != nil && err == nil {
+			err = err2
+		}
+	}()
+
+	ctx, err := CtxOpen(0)
+	if err != nil {
+		return
+	}
+	defer func() {
+		err2 := ctx.Close()
+		if err2 != nil && err == nil {
+			err = err2
+		}
+	}()
+
+	return handler(ctx)
+}
