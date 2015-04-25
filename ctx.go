@@ -30,6 +30,13 @@ func (c *Ctx) At(id ID) *Obj {
 	return (*Obj)(unsafe.Pointer(obj))
 }
 
+func (c *Ctx) CloseDefer(err *error) {
+	err2 := c.Close()
+	if err2 != nil && *err == nil {
+		*err = err2
+	}
+}
+
 func WithCtx(flags int, handler func(ctx *Ctx) error) (err error) {
 	err = Init()
 	if err != nil {

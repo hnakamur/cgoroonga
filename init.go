@@ -21,3 +21,10 @@ func Fin() error {
 	}
 	return nil
 }
+
+func FinDefer(err *error) {
+	err2 := Fin()
+	if err2 != nil && *err == nil {
+		*err = err2
+	}
+}

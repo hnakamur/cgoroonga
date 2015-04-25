@@ -6,7 +6,26 @@ import (
 	grn "github.com/hnakamur/cgoroonga"
 )
 
-func handler(ctx *grn.Ctx, db *grn.Obj) (err error) {
+func run() (err error) {
+	err = grn.Init()
+	if err != nil {
+		return
+	}
+	defer grn.FinDefer(&err)
+
+	ctx, err := grn.CtxOpen(0)
+	if err != nil {
+		return
+	}
+	defer ctx.CloseDefer(&err)
+
+	var db *grn.Obj
+	db, err = ctx.DBOpenOrCreate("hello.db", nil)
+	if err != nil {
+		return
+	}
+	defer ctx.ObjCloseDefer(&err, db)
+
 	keyType := ctx.At(grn.DB_SHORT_TEXT)
 	table, err := ctx.TableOpenOrCreate("table1", "",
 		grn.OBJ_TABLE_HASH_KEY|grn.OBJ_PERSISTENT, keyType, nil)
@@ -47,12 +66,6 @@ func handler(ctx *grn.Ctx, db *grn.Obj) (err error) {
 	ctx.ObjGetValue(column, recordID, &bulk)
 	fmt.Printf("bulk=%s\n", grn.BulkHead(&bulk))
 	return
-}
-
-func run() error {
-	return grn.WithCtx(0, func(ctx *grn.Ctx) error {
-		return ctx.WithDB("hello.db", nil, handler)
-	})
 }
 
 func main() {
