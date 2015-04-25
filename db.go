@@ -22,14 +22,3 @@ func (c *Ctx) DBOpenOrCreate(path string, optarg *CreateOptArg) (*Obj, error) {
 	}
 	return db, nil
 }
-
-func (c *Ctx) WithDB(path string, optarg *CreateOptArg, handler func(ctx *Ctx, db *Obj) error) (err error) {
-	var db *Obj
-	db, err = c.DBOpenOrCreate(path, optarg)
-	if err != nil {
-		return
-	}
-	defer c.ObjCloseDefer(&err, db)
-
-	return handler(c, db)
-}
