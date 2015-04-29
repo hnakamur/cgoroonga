@@ -6,4 +6,6 @@ cgoroonga
 * I will implement only APIs which I use.
 
 ## License
-MIT
+
+* cgoroonga: MIT
+* [groonga](https://github.com/groonga/groonga): LGPL 2.1
