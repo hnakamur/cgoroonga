@@ -23,6 +23,16 @@ func (c *Ctx) Close() error {
 	return nil
 }
 
+func (c *Ctx) Get(name string) *Obj {
+	cName := C.CString(name)
+	defer C.free(unsafe.Pointer(cName))
+	cNameLen := C.strlen(cName)
+	obj := C.grn_ctx_get(
+		(*C.struct__grn_ctx)(unsafe.Pointer(c)),
+		cName, C.int(cNameLen))
+	return (*Obj)(unsafe.Pointer(obj))
+}
+
 func (c *Ctx) At(id ID) *Obj {
 	obj := C.grn_ctx_at(
 		(*C.struct__grn_ctx)(unsafe.Pointer(c)),
