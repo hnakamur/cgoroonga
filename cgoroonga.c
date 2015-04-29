@@ -18,9 +18,9 @@ GRN_API grn_rc go_grn_text_put(grn_ctx *ctx, grn_obj *bulk, const char *str, uns
 }
 
 GRN_API void go_grn_bulk_rewind(grn_obj *bulk) {
-  GRN_BULK_REWIND(bulk);
+	GRN_BULK_REWIND(bulk);
 }
 
 GRN_API char *go_grn_bulk_head(grn_obj *bulk) {
-  return GRN_BULK_HEAD(bulk);
+	return GRN_BULK_HEAD(bulk);
 }
