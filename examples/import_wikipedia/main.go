@@ -17,7 +17,7 @@ type Page struct {
 }
 
 func addArticle(ctx *grn.Ctx, table, column *grn.Obj, title, text string) error {
-	recordID, _, err := ctx.RecordAdd(table, title)
+	recordID, _, err := ctx.TableAdd(table, title)
 	if err != nil {
 		return err
 	}

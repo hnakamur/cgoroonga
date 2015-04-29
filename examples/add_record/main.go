@@ -44,7 +44,7 @@ func run() (err error) {
 	fmt.Printf("column=%x\n", column)
 	defer ctx.ObjUnlinkDefer(&err, column)
 
-	recordID, added, err := ctx.RecordAdd(table, "rec1")
+	recordID, added, err := ctx.TableAdd(table, "rec1")
 	if err != nil {
 		return
 	}

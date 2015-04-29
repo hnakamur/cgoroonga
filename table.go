@@ -35,6 +35,30 @@ func (c *Ctx) TableOpenOrCreate(name string, path string, flags ObjFlags, keyTyp
 	return (*Obj)(unsafe.Pointer(table)), nil
 }
 
+func (c *Ctx) TableAdd(table *Obj, key string) (recordID ID, added bool, err error) {
+	var cKey *C.char
+	var cKeyLen C.size_t
+	if key != "" {
+		cKey = C.CString(key)
+		defer C.free(unsafe.Pointer(cKey))
+
+		cKeyLen = C.strlen(cKey)
+	}
+	var cAdded C.int
+	recordID = ID(C.grn_table_add(
+		(*C.struct__grn_ctx)(unsafe.Pointer(c)),
+		(*C.struct__grn_obj)(unsafe.Pointer(table)),
+		unsafe.Pointer(cKey),
+		C.uint(cKeyLen),
+		&cAdded))
+	if cAdded != 0 {
+		added = true
+	} else {
+		added = false
+	}
+	return
+}
+
 func (c *Ctx) TableSelect(table, expr, res *Obj, op Operator) (*Obj, error) {
 	result := C.grn_table_select(
 		(*C.struct__grn_ctx)(unsafe.Pointer(c)),
