@@ -270,3 +270,18 @@ const (
 	EXPR_ALLOW_UPDATE          = 0x08
 	EXPR_ALLOW_LEADING_NOT     = 0x10
 )
+
+// TableCursorOpen flags
+const (
+	CURSOR_ASCENDING   = 0x00 << 0
+	CURSOR_DESCENDING  = 0x01 << 0
+	CURSOR_GE          = 0x00 << 1
+	CURSOR_GT          = 0x01 << 1
+	CURSOR_LE          = 0x00 << 2
+	CURSOR_LT          = 0x01 << 2
+	CURSOR_BY_KEY      = 0x00 << 3
+	CURSOR_BY_ID       = 0x01 << 3
+	CURSOR_PREFIX      = 0x01 << 4
+	CURSOR_SIZE_BY_BIT = 0x01 << 5
+	CURSOR_RK          = 0x01 << 6
+)
