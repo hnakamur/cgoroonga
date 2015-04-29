@@ -33,6 +33,12 @@ func (c *Ctx) TableCursorOpen(table *Obj, min, max string, offset, limit, flags 
 	return (*TableCursor)(unsafe.Pointer(cursor)), nil
 }
 
+func (c *Ctx) TableCursorNext(tc *TableCursor) ID {
+	return ID(C.grn_table_cursor_close(
+		(*C.struct__grn_ctx)(unsafe.Pointer(c)),
+		(*C.grn_table_cursor)(unsafe.Pointer(tc))))
+}
+
 func (c *Ctx) TableCursorClose(tc *TableCursor) error {
 	rc := C.grn_table_cursor_close(
 		(*C.struct__grn_ctx)(unsafe.Pointer(c)),

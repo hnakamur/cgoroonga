@@ -1,5 +1,11 @@
 package cgoroonga
 
+// ID values
+const (
+	ID_NIL = 0x00
+	ID_MAX = 0x3fffffff
+)
+
 // builtin types
 const (
 	DB_VOID = iota
