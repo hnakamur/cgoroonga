@@ -26,7 +26,7 @@ func (c *Ctx) ExprParse(expr *Obj, str string, defaultColumn *Obj, defaultMode, 
 	return nil
 }
 
-func (c *Ctx) ExprCreateForQuery(table *Obj) (expr, var_ *Obj) {
+func (c *Ctx) ExprCreateForQuery(table *Obj) (expr, var_ *Obj, err error) {
 	cCtx := (*C.struct__grn_ctx)(unsafe.Pointer(c))
 	cExpr := C.grn_expr_create(cCtx, nil, 0)
 	var cVar *C.grn_obj
@@ -37,5 +37,8 @@ func (c *Ctx) ExprCreateForQuery(table *Obj) (expr, var_ *Obj) {
 			C.go_grn_record_init(cVar, 0, C.grn_obj_id(cCtx, cTable))
 		}
 	}
-	return (*Obj)(cExpr), (*Obj)(cVar)
+	if cExpr == nil || cVar == nil {
+		return nil, nil, errorFromRc(c.rc)
+	}
+	return (*Obj)(cExpr), (*Obj)(cVar), nil
 }
