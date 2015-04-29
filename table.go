@@ -71,3 +71,13 @@ func (c *Ctx) TableSelect(table, expr, res *Obj, op Operator) (*Obj, error) {
 	}
 	return (*Obj)(unsafe.Pointer(result)), nil
 }
+
+func (c *Ctx) TableSize(table *Obj) (uint, error) {
+	n := C.grn_table_size(
+		(*C.struct__grn_ctx)(unsafe.Pointer(c)),
+		(*C.struct__grn_obj)(unsafe.Pointer(table)))
+	if c.rc != SUCCESS {
+		return 0, errorFromRc(c.rc)
+	}
+	return uint(n), nil
+}
