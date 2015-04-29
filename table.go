@@ -34,3 +34,16 @@ func (c *Ctx) TableOpenOrCreate(name string, path string, flags ObjFlags, keyTyp
 	}
 	return (*Obj)(unsafe.Pointer(table)), nil
 }
+
+func (c *Ctx) TableSelect(table, expr, res *Obj, op Operator) (*Obj, error) {
+	result := C.grn_table_select(
+		(*C.struct__grn_ctx)(unsafe.Pointer(c)),
+		(*C.struct__grn_obj)(unsafe.Pointer(table)),
+		(*C.struct__grn_obj)(unsafe.Pointer(expr)),
+		(*C.struct__grn_obj)(unsafe.Pointer(res)),
+		C.grn_operator(op))
+	if result == nil {
+		return nil, errorFromRc(c.rc)
+	}
+	return (*Obj)(unsafe.Pointer(result)), nil
+}
