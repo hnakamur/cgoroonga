@@ -47,3 +47,26 @@ func (c *Ctx) ObjUnlinkDefer(err *error, obj *Obj) {
 		*err = err2
 	}
 }
+
+func (c *Ctx) ObjColumn(table *Obj, name string) (*Obj, error) {
+	var cName *C.char
+	var cNameLen C.size_t
+	if name != "" {
+		cName = C.CString(name)
+		defer C.free(unsafe.Pointer(cName))
+		cNameLen = C.strlen(cName)
+	}
+
+	column := C.grn_obj_column(
+		(*C.struct__grn_ctx)(unsafe.Pointer(c)),
+		(*C.struct__grn_obj)(unsafe.Pointer(table)),
+		cName, C.uint(cNameLen))
+	if column == nil {
+		if c.rc != SUCCESS {
+			return nil, errorFromRc(c.rc)
+		} else {
+			return nil, ObjColumnError
+		}
+	}
+	return (*Obj)(unsafe.Pointer(column)), nil
+}

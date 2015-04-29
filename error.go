@@ -22,6 +22,7 @@ var (
 	CtxOpenError      = Error{Message: "ctx open error"}
 	DBCreateError     = Error{Message: "db create error"}
 	TableCreateError  = Error{Message: "table create error"}
+	ObjColumnError    = Error{Message: "column not found error"}
 )
 
 // errors which have error codes.
