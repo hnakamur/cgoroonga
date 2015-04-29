@@ -24,3 +24,7 @@ GRN_API void go_grn_bulk_rewind(grn_obj *bulk) {
 GRN_API char *go_grn_bulk_head(grn_obj *bulk) {
 	return GRN_BULK_HEAD(bulk);
 }
+
+GRN_API void go_grn_record_init(grn_obj *obj, unsigned char flags, grn_id domain) {
+	GRN_VALUE_FIX_SIZE_INIT(obj, flags, domain);
+}
