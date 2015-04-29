@@ -24,7 +24,7 @@ func run() (err error) {
 	if err != nil {
 		return
 	}
-	defer ctx.ObjCloseDefer(&err, db)
+	defer ctx.ObjUnlinkDefer(&err, db)
 
 	keyType := ctx.At(grn.DB_SHORT_TEXT)
 	table, err := ctx.TableOpenOrCreate("table1", "",
@@ -33,7 +33,7 @@ func run() (err error) {
 		return
 	}
 	fmt.Printf("table=%x\n", table)
-	defer ctx.ObjCloseDefer(&err, table)
+	defer ctx.ObjUnlinkDefer(&err, table)
 
 	columnType := ctx.At(grn.DB_TEXT)
 	column, err := ctx.ColumnOpenOrCreate(table, "col", "",
@@ -42,7 +42,7 @@ func run() (err error) {
 		return
 	}
 	fmt.Printf("column=%x\n", column)
-	defer ctx.ObjCloseDefer(&err, column)
+	defer ctx.ObjUnlinkDefer(&err, column)
 
 	recordID, added, err := ctx.RecordAdd(table, "rec1")
 	if err != nil {

@@ -7,13 +7,13 @@ package cgoroonga
 import "C"
 import "unsafe"
 
-func (c *Ctx) ObjClose(obj *Obj) error {
-	rc := C.grn_obj_close(
+func (c *Ctx) ObjUnlink(obj *Obj) error {
+	C.grn_obj_unlink(
 		(*C.struct__grn_ctx)(unsafe.Pointer(c)),
 		(*C.struct__grn_obj)(unsafe.Pointer(obj)),
 	)
-	if rc != SUCCESS {
-		return errorFromRc(rc)
+	if c.rc != SUCCESS {
+		return errorFromRc(c.rc)
 	}
 	return nil
 }
@@ -41,8 +41,8 @@ func (c *Ctx) ObjGetValue(obj *Obj, recordID ID, value *Obj) *Obj {
 	)))
 }
 
-func (c *Ctx) ObjCloseDefer(err *error, obj *Obj) {
-	err2 := c.ObjClose(obj)
+func (c *Ctx) ObjUnlinkDefer(err *error, obj *Obj) {
+	err2 := c.ObjUnlink(obj)
 	if err2 != nil && *err == nil {
 		*err = err2
 	}
