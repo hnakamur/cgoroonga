@@ -13,4 +13,3 @@ type CreateOptArg C.struct__grn_db_create_optarg
 type ObjFlags int
 type ID int
 type Operator int
-type ExprFlags uint

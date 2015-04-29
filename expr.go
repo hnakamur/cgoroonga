@@ -7,7 +7,7 @@ package cgoroonga
 import "C"
 import "unsafe"
 
-func (c *Ctx) ExprParse(expr *Obj, str string, defaultColumn *Obj, defaultMode, defaultOp Operator, flags ExprFlags) error {
+func (c *Ctx) ExprParse(expr *Obj, str string, defaultColumn *Obj, defaultMode, defaultOp Operator, flags int) error {
 	cStr := C.CString(str)
 	defer C.free(unsafe.Pointer(cStr))
 
