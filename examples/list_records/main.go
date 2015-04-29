@@ -110,7 +110,79 @@ func selectSites(ctx *grn.Ctx) (err error) {
 		ctx.ObjGetValue(titleColumn, id, &buf)
 		title := grn.BulkHead(&buf)
 
-		fmt.Printf("key=%s, title=%s\n", key, title)
+		fmt.Printf("id=%d, key=%s, title=%s\n", id, key, title)
+	}
+	ctx.TableCursorClose(tc)
+
+	return
+}
+
+func selectComSites(ctx *grn.Ctx) (err error) {
+	table := ctx.Get("Site")
+	defer ctx.ObjUnlinkDefer(&err, table)
+
+	cond, v, err := ctx.ExprCreateForQuery(table)
+	if err != nil {
+		return
+	}
+	defer ctx.ObjUnlinkDefer(&err, cond)
+	defer ctx.ObjUnlinkDefer(&err, v)
+
+	flags := grn.EXPR_SYNTAX_QUERY | grn.EXPR_ALLOW_PRAGMA | grn.EXPR_ALLOW_COLUMN
+	err = ctx.ExprParse(cond, "_key:@.com", nil, grn.OP_MATCH, grn.OP_AND, flags)
+	if err != nil {
+		return
+	}
+
+	res, err := ctx.TableSelect(table, cond, nil, grn.OP_OR)
+	if err != nil {
+		return
+	}
+	defer ctx.ObjUnlinkDefer(&err, res)
+
+	count, err := ctx.TableSize(res)
+	if err != nil {
+		return
+	}
+	fmt.Printf("record count=%d\n", count)
+
+	var keyColumn *grn.Obj
+	keyColumn, err = ctx.ObjColumn(res, "_key")
+	if err != nil {
+		return
+	}
+	defer ctx.ObjUnlinkDefer(&err, keyColumn)
+
+	var titleColumn *grn.Obj
+	titleColumn, err = ctx.ObjColumn(res, "title")
+	if err != nil {
+		return
+	}
+	defer ctx.ObjUnlinkDefer(&err, titleColumn)
+
+	tc, err := ctx.TableCursorOpen(res, "", "", 0, -1, grn.CURSOR_ASCENDING)
+	if err != nil {
+		return
+	}
+
+	var buf grn.Obj
+	defer ctx.ObjUnlinkDefer(&err, &buf)
+	for {
+		id := ctx.TableCursorNext(tc)
+		if id == grn.ID_NIL {
+			break
+		}
+		grn.TextInit(&buf, 0)
+		grn.BulkRewind(&buf)
+		ctx.ObjGetValue(keyColumn, id, &buf)
+		key := grn.BulkHead(&buf)
+
+		grn.TextInit(&buf, 0)
+		grn.BulkRewind(&buf)
+		ctx.ObjGetValue(titleColumn, id, &buf)
+		title := grn.BulkHead(&buf)
+
+		fmt.Printf("id=%d, key=%s, title=%s\n", id, key, title)
 	}
 	ctx.TableCursorClose(tc)
 
@@ -158,6 +230,11 @@ func run() (err error) {
 	}
 
 	err = selectSites(ctx)
+	if err != nil {
+		return
+	}
+
+	err = selectComSites(ctx)
 	return
 }
 
