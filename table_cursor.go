@@ -34,7 +34,7 @@ func (c *Ctx) TableCursorOpen(table *Obj, min, max string, offset, limit, flags 
 }
 
 func (c *Ctx) TableCursorNext(tc *TableCursor) ID {
-	return ID(C.grn_table_cursor_close(
+	return ID(C.grn_table_cursor_next(
 		(*C.struct__grn_ctx)(unsafe.Pointer(c)),
 		(*C.grn_table_cursor)(unsafe.Pointer(tc))))
 }
