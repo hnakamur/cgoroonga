@@ -53,6 +53,7 @@ func run() (err error) {
 	var value grn.Obj
 	grn.TextInit(&value, 0)
 	ctx.TextPut(&value, "groonga world")
+	defer ctx.ObjUnlinkDefer(&err, &value)
 	fmt.Printf("value=%v\n", value)
 	err = ctx.ObjSetValue(column, recordID, &value, grn.OBJ_SET)
 	if err != nil {
@@ -63,6 +64,7 @@ func run() (err error) {
 	var bulk grn.Obj
 	grn.TextInit(&bulk, 0)
 	grn.BulkRewind(&bulk)
+	defer ctx.ObjUnlinkDefer(&err, &bulk)
 	ctx.ObjGetValue(column, recordID, &bulk)
 	fmt.Printf("bulk=%s\n", grn.BulkHead(&bulk))
 	return
