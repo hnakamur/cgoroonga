@@ -21,7 +21,9 @@ search.results = m.prop([]);
 
 search.vm = {
   searchWord: m.prop(""),
-  matchedCount: m.prop(0)
+  matchedCount: m.prop(0),
+  offset: m.prop(0),
+  limit: m.prop(10)
 };
 
 search.controller = function() {
@@ -29,7 +31,8 @@ search.controller = function() {
     var url = "/search";
     var q = search.vm.searchWord();
     if (q !== "") {
-      url += "?q=" + encodeURIComponent("_key:@" + q + " OR text:@" + q);
+      url += "?q=" + encodeURIComponent("_key:@" + q + " OR text:@" + q) +
+        "&offset=" + search.vm.offset() + "&limit=" + search.vm.limit();
     }
     return m.request({method: "GET", url: url, type: search.Result,
       unwrapSuccess: function(response) {
