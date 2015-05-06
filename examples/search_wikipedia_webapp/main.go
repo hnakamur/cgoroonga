@@ -11,6 +11,10 @@ import (
 	grn "github.com/hnakamur/cgoroonga"
 )
 
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "public/index.html")
+}
+
 func formIntValue(r *http.Request, key string, defaultValue int) (int, error) {
 	strValue := r.FormValue(key)
 	var intValue int = defaultValue
@@ -35,7 +39,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	limitCount, err := formIntValue(r, "limit", 100)
+	limitCount, err := formIntValue(r, "limit", 20)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -194,5 +198,6 @@ func main() {
 	defer ctx.ObjUnlinkDefer(&err, db)
 
 	http.HandleFunc("/search", searchHandler)
+	http.HandleFunc("/", indexHandler)
 	http.ListenAndServe(":8080", nil)
 }
