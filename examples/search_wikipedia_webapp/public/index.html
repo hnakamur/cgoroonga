@@ -6,73 +6,216 @@
 .result {
   margin: 0.5em 0;
 }
+.prevPage, .page, .nextPage {
+  margin: 0 4px;
+}
+.prevPage, .page, .nextPage {
+  text-decoration: none;
+}
+.prevPage:hover, a.page:hover, .nextPage:hover {
+  text-decoration: underline;
+}
 </style>
 </head>
 <body>
-<script src="//cdnjs.cloudflare.com/ajax/libs/mithril/0.2.0/mithril.js"></script>
+<script src="/js/mithril.js"></script>
+<script src="/js/observable.js"></script>
 <script>
-var search = {};
-
-search.Result = function(data) {
+Result = function(data) {
   this.title = m.prop(data && data.title || "");
   this.text = m.prop(data && data.text || "");
 };
-search.results = m.prop([]);
 
-search.vm = {
-  searchWord: m.prop(""),
-  matchedCount: m.prop(0),
-  offset: m.prop(0),
-  limit: m.prop(10)
-};
-
-search.controller = function() {
-  this.search = function() {
-    var url = "/search";
-    var q = search.vm.searchWord();
-    if (q !== "") {
-      url += "?q=" + encodeURIComponent("_key:@" + q + " OR text:@" + q) +
-        "&offset=" + search.vm.offset() + "&limit=" + search.vm.limit();
-    }
-    return m.request({method: "GET", url: url, type: search.Result,
-      unwrapSuccess: function(response) {
-        search.vm.matchedCount(response.matchedCount);
-        return response.results;
-      }
-    })
-    .then(search.results)
-    .then(m.redraw);
+Observable.on(['search'], function(data) {
+  var url = "/search"
+  var q = data.searchWord()
+  if (q !== "") {
+    url += "?q=" + encodeURIComponent("_key:@" + q + " OR text:@" + q)
   }
-};
+  return m.request({method: "GET", url: url})
+  .then(function(data) {
+    Observable.trigger('updateResults', data)
+  })
+})
 
-search.view = function(ctrl) {
-  var vm = search.vm;
-  var wikipediaLink = function(title) {
-    return "https://ja.wikipedia.org/wiki/" + encodeURIComponent(title());
-  };
-  return m(".search", [
-    m("input", {
-      onchange: m.withAttr("value", vm.searchWord),
-      value: vm.searchWord()
-    }),
-    m("button", {onclick: ctrl.search}, "Search"),
-    m(".matchedCount", [
-      m("label", "Matched count: "),
-      m("span", vm.matchedCount())
-    ]),
-    search.results().map(function(result, index) {
-      return m(".result", [
-        m(".title", [
-          m("a[href=" + wikipediaLink(result.title) + "][target=_blank]",
-            result.title())
-        ]),
-        m(".text", result.text())
+Observable.on(['jumpToPage'], function(data) {
+  var url = "/search"
+  var q = data.searchWord
+  var currentPage = data.page
+  var offset = (data.page - 1) * data.itemsPerPage
+  var limit = data.itemsPerPage
+  if (q !== "") {
+    url += "?q=" + encodeURIComponent("_key:@" + q + " OR text:@" + q) +
+      "&offset=" + offset + "&limit=" + limit
+  }
+  return m.request({method: "GET", url: url})
+  .then(function(data) {
+    data.currentPage = currentPage
+    Observable.trigger('updateResults', data)
+  })
+})
+
+var SearchWidget = (function () {
+  var vm = {
+    searchWord: m.prop('')
+  }
+
+  return {
+    controller: function() {
+      this.search = function(formVM) {
+        vm.searchWord(formVM.searchWord())
+        Observable.trigger('search', formVM)
+        return false
+      }
+      this.jumpToPage = function(data) {
+        Observable.trigger('jumpToPage', {
+          searchWord: vm.searchWord(),
+          page: data.page,
+          itemsPerPage: data.itemsPerPage
+        })
+        return false
+      }
+    },
+    view: function(ctrl) {
+      return [
+        m.component(SearchForm, {onsubmit: ctrl.search}),
+        m.component(SearchResultWidget),
+        m.component(PaginationWidget, {onclick: ctrl.jumpToPage})
+      ]
+    }
+  }
+})()
+
+var SearchForm = (function() {
+  var vm = {
+    searchWord: m.prop('')
+  }
+
+  return {
+    controller: function() {
+      this.vm = vm
+    },
+    view: function(ctrl, args) {
+      var vm = ctrl.vm;
+      return m('form.search[method=get]', {onsubmit: args.onsubmit.bind(this, vm)}, [
+        m('input', {
+          onchange: m.withAttr('value', vm.searchWord),
+          value: vm.searchWord()
+        }),
+        m('input[type=submit][value=Search]', {onclick: ctrl.search})
       ])
-    })
-  ]);
-};
+    }
+  }
+})()
 
-m.mount(document.body, {controller: search.controller, view: search.view});
+var SearchResultWidget = (function() {
+  var vm = {
+    display: m.prop('none'),
+    matchedCount: m.prop(0),
+    results: m.prop([])
+  }
+
+  return {
+    controller: Observable.register(['updateResults'], function(data) {
+      if (data) {
+        vm.display('block')
+        vm.matchedCount(data.matchedCount)
+        vm.results(data.results.map(function(result) {
+          return new Result(result)
+        }))
+      }
+    }),
+    view: function(ctrl) {
+      var wikipediaLink = function(title) {
+        return "https://ja.wikipedia.org/wiki/" + encodeURIComponent(title())
+      }
+      return m('.results[style="display:' + vm.display() + '"]', [
+        vm.results().map(function(result, index) {
+          return m(".result", [
+            m(".title", [
+              m("a[href=" + wikipediaLink(result.title) + "][target=_blank]",
+                result.title())
+            ]),
+            m(".text", result.text())
+          ])
+        })
+      ])
+    }
+  }
+})()
+
+var PaginationWidget = (function(){
+  var vm = {
+    display: m.prop('none'),
+    numItems: m.prop(0),
+    itemsPerPage: m.prop(10),
+    currentPage: m.prop(1),
+    maxViewablePages: m.prop(9), // must be an odd number
+    numPages: function() {
+      return Math.floor((vm.numItems() - 1) / vm.itemsPerPage()) + 1
+    },
+    viewablePages: function() {
+      var currentPage = vm.currentPage()
+      var numPages = vm.numPages()
+      var maxViewablePages = vm.maxViewablePages()
+      var viewablePageCount = Math.min(numPages, maxViewablePages)
+      var startPage = currentPage - Math.floor(viewablePageCount / 2)
+      var endPage = startPage + viewablePageCount
+      if (startPage < 1) {
+        startPage = 1
+        endPage = viewablePageCount
+      } else if (endPage > numPages) {
+        startPage = numPages - viewablePageCount
+        endPage = numPages
+      }
+      var pages = []
+      for (var i = startPage; i <= endPage; i++) {
+        pages.push(i)
+      }
+      return pages
+    },
+    hasPrevPage: function() {
+      return vm.currentPage() > 1
+    },
+    hasNextPage: function() {
+      return vm.currentPage() < vm.numPages()
+    }
+  }
+
+  return {
+    controller: Observable.register(['updateResults'], function(data) {
+      if (data) {
+        vm.display('block')
+        vm.numItems(data.matchedCount)
+        if (data.currentPage) {
+          vm.currentPage(data.currentPage)
+        }
+      }
+    }),
+    view: function(ctrl, args) {
+      var currentPage = vm.currentPage()
+      var jumpToPage = function(page) {
+        return function() {
+          var itemsPerPage = vm.itemsPerPage()
+          args.onclick({
+            page: page,
+            itemsPerPage: vm.itemsPerPage()
+          })
+        }
+      }
+      return m('.pagination[style="display:' + vm.display() + '"]', [
+        vm.hasPrevPage() ? m('a.prevPage[href=#]', {onclick: jumpToPage(currentPage - 1)}, '前へ') : undefined,
+        vm.viewablePages().map(function(page) {
+          return page === currentPage ? m('span.page', page) :
+            m('a.page[href=#]', {onclick: jumpToPage(page)}, page)
+        }),
+        vm.hasNextPage() ? m('a.nextPage[href=#]', {onclick: jumpToPage(currentPage + 1)}, '次へ') : undefined
+      ])
+    }
+  }
+})()
+
+m.mount(document.body, SearchWidget)
 </script>
 <body>
 </html>

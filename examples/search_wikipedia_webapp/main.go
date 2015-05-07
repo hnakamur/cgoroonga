@@ -11,8 +11,10 @@ import (
 	grn "github.com/hnakamur/cgoroonga"
 )
 
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "public/index.html")
+func staticFileHandler(path string) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, path)
+	}
 }
 
 func formIntValue(r *http.Request, key string, defaultValue int) (int, error) {
@@ -198,6 +200,8 @@ func main() {
 	defer ctx.ObjUnlinkDefer(&err, db)
 
 	http.HandleFunc("/search", searchHandler)
-	http.HandleFunc("/", indexHandler)
+	http.HandleFunc("/", staticFileHandler("public/index.html"))
+	http.HandleFunc("/js/mithril.js", staticFileHandler("public/js/mithril.js"))
+	http.HandleFunc("/js/observable.js", staticFileHandler("public/js/observable.js"))
 	http.ListenAndServe(":8080", nil)
 }
