@@ -125,13 +125,13 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		var keyBuf grn.Obj
 		grn.TextInit(&keyBuf, 0)
-		grn.BulkRewind(&keyBuf)
+		ctx.BulkReinit(&keyBuf, 4096)
 		ctx.ObjGetValue(keyColumn, id, &keyBuf)
 		key := grn.BulkHead(&keyBuf)
 
 		var textBuf grn.Obj
 		grn.TextInit(&textBuf, 0)
-		grn.BulkRewind(&textBuf)
+		ctx.BulkReinit(&textBuf, 4096)
 		ctx.ObjGetValue(textColumn, id, &textBuf)
 		text := grn.BulkHead(&textBuf)
 
