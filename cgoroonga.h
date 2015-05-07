@@ -7,6 +7,7 @@
 
 GRN_API void go_grn_bulk_rewind(grn_obj *bulk);
 GRN_API char *go_grn_bulk_head(grn_obj *bulk);
+GRN_API int go_grn_bulk_vsize(grn_obj *bulk);
 
 GRN_API grn_obj *go_grn_db_open_or_create(grn_ctx *ctx, const char *path, grn_db_create_optarg *optarg);
 

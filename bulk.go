@@ -37,8 +37,9 @@ func (c *Ctx) BulkReserve(bulk *Obj, length uint) error {
 
 func BulkHead(bulk *Obj) (head string) {
 	cHead := C.go_grn_bulk_head((*C.struct__grn_obj)(unsafe.Pointer(bulk)))
+	cSize := C.go_grn_bulk_vsize((*C.struct__grn_obj)(unsafe.Pointer(bulk)))
 	if cHead != nil {
-		head = C.GoString(cHead)
+		head = C.GoStringN(cHead, cSize)
 	}
 	return
 }
