@@ -60,11 +60,23 @@ var SearchWidget = (function () {
     }))
   })
 
+  var queryParams = function() {
+    var params = {}
+    var a = window.location.search.substr(1).split('&')
+    for (var i = 0, len = a.length; i < len; i++) {
+      var b = a[i].split('=', 2)
+      if (b[0] !== '') {
+        params[b[0]] = decodeURIComponent(b[1])
+      }
+    }
+    return params
+  }
+
   return {
     controller: function() {
-      this.search = function(data) {
-        vm.searchWord(data.searchWord())
+      this.search = function() {
         vm.currentPage(1)
+        m.route('q=' + encodeURIComponent(vm.searchWord()) + '&start=' + 0)
         Observable.trigger('search', {
           searchWord: vm.searchWord(),
           offset: 0,
@@ -73,18 +85,29 @@ var SearchWidget = (function () {
         return false
       }
       this.jumpToPage = function(page) {
+        var offset = (page - 1) * vm.itemsPerPage()
         vm.currentPage(page)
+        m.route('q=' + encodeURIComponent(vm.searchWord()) + '&start=' + offset)
         Observable.trigger('search', {
           searchWord: vm.searchWord(),
-          offset: (page - 1) * vm.itemsPerPage(),
+          offset: offset,
           limit: vm.itemsPerPage()
         })
         return false
       }
+
+      var params = queryParams()
+      if (params.q) {
+        vm.searchWord(params.q)
+        this.jumpToPage(Math.floor(params.start / vm.itemsPerPage()) + 1)
+      }
     },
     view: function(ctrl) {
       return [
-        m.component(SearchForm, {onsubmit: ctrl.search}),
+        m.component(SearchForm, {
+          searchWord: vm.searchWord,
+          onsubmit: ctrl.search
+        }),
         m.component(SearchResultWidget, {
           display: vm.display,
           numItems: vm.numItems,
@@ -102,22 +125,15 @@ var SearchWidget = (function () {
 })()
 
 var SearchForm = (function() {
-  var vm = {
-    searchWord: m.prop('')
-  }
-
   return {
-    controller: function() {
-      this.vm = vm
-    },
+    controller: function() {},
     view: function(ctrl, args) {
-      var vm = ctrl.vm;
       return m('form.search[method=get]',
-          {onsubmit: args.onsubmit.bind(this, vm)},
+          {onsubmit: args.onsubmit.bind(this)},
       [
         m('input', {
-          onchange: m.withAttr('value', vm.searchWord),
-          value: vm.searchWord()
+          onchange: m.withAttr('value', args.searchWord),
+          value: args.searchWord()
         }),
         m('input[type=submit][value=Search]')
       ])
