@@ -116,24 +116,25 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	bw.WriteString(fmt.Sprintf(`{"matchedCount":%d,`, count))
 	bw.WriteString(fmt.Sprintf(`"resultCount":%d,`, resultCount))
 	bw.WriteString(`"results":[`)
-	var buf grn.Obj
+	var keyBuf grn.Obj
+	var textBuf grn.Obj
 	var jsonBuf []byte
-	defer ctx.ObjUnlinkDefer(&err, &buf)
+	defer ctx.ObjUnlinkDefer(&err, &keyBuf)
 	first := true
 	for {
 		id := ctx.TableCursorNext(tc)
 		if id == grn.ID_NIL {
 			break
 		}
-		grn.TextInit(&buf, 0)
-		grn.BulkRewind(&buf)
-		ctx.ObjGetValue(keyColumn, id, &buf)
-		key := grn.BulkHead(&buf)
+		grn.TextInit(&keyBuf, 0)
+		grn.BulkRewind(&keyBuf)
+		ctx.ObjGetValue(keyColumn, id, &keyBuf)
+		key := grn.BulkHead(&keyBuf)
 
-		grn.TextInit(&buf, 0)
-		grn.BulkRewind(&buf)
-		ctx.ObjGetValue(textColumn, id, &buf)
-		text := grn.BulkHead(&buf)
+		grn.TextInit(&textBuf, 0)
+		grn.BulkRewind(&textBuf)
+		ctx.ObjGetValue(textColumn, id, &textBuf)
+		text := grn.BulkHead(&textBuf)
 
 		r := []rune(text)
 		if len(r) >= 200 {
