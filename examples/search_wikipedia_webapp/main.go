@@ -125,13 +125,13 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		var keyBuf grn.Obj
 		grn.TextInit(&keyBuf, 0)
-		ctx.BulkReinit(&keyBuf, 4096)
+		grn.BulkRewind(&keyBuf)
 		ctx.ObjGetValue(keyColumn, id, &keyBuf)
 		key := grn.BulkHead(&keyBuf)
 
 		var textBuf grn.Obj
 		grn.TextInit(&textBuf, 0)
-		ctx.BulkReinit(&textBuf, 4096)
+		grn.BulkRewind(&textBuf)
 		ctx.ObjGetValue(textColumn, id, &textBuf)
 		text := grn.BulkHead(&textBuf)
 
@@ -162,16 +162,18 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		bw.Write(jsonBuf)
 		bw.WriteString(`}`)
 
-		err = ctx.ObjUnlink(&keyBuf)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		err = ctx.ObjUnlink(&textBuf)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		/*
+			err = ctx.ObjUnlink(&keyBuf)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			err = ctx.ObjUnlink(&textBuf)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		*/
 	}
 	ctx.TableCursorClose(tc)
 	bw.WriteString(`]}`)

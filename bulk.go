@@ -23,6 +23,18 @@ func (c *Ctx) BulkReinit(bulk *Obj, size uint) error {
 	return nil
 }
 
+func (c *Ctx) BulkReserve(bulk *Obj, length uint) error {
+	rc := C.grn_bulk_reserve(
+		(*C.struct__grn_ctx)(unsafe.Pointer(c)),
+		(*C.struct__grn_obj)(unsafe.Pointer(bulk)),
+		C.uint(length),
+	)
+	if rc != SUCCESS {
+		return errorFromRc(rc)
+	}
+	return nil
+}
+
 func BulkHead(bulk *Obj) (head string) {
 	cHead := C.go_grn_bulk_head((*C.struct__grn_obj)(unsafe.Pointer(bulk)))
 	if cHead != nil {
