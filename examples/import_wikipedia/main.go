@@ -53,7 +53,7 @@ func run(dbFilename, wikiArticlesXmlBzip2Filename string) (err error) {
 	if err != nil {
 		return
 	}
-	defer ctx.ObjCloseDefer(&err, db)
+	defer ctx.ObjUnlinkDefer(&err, db)
 
 	keyType := ctx.At(grn.DB_SHORT_TEXT)
 	table, err := ctx.TableOpenOrCreate("Articles", "",
@@ -61,7 +61,7 @@ func run(dbFilename, wikiArticlesXmlBzip2Filename string) (err error) {
 	if err != nil {
 		return
 	}
-	defer ctx.ObjCloseDefer(&err, table)
+	defer ctx.ObjUnlinkDefer(&err, table)
 
 	columnType := ctx.At(grn.DB_TEXT)
 	column, err := ctx.ColumnOpenOrCreate(table, "text", "",
@@ -69,7 +69,7 @@ func run(dbFilename, wikiArticlesXmlBzip2Filename string) (err error) {
 	if err != nil {
 		return
 	}
-	defer ctx.ObjCloseDefer(&err, column)
+	defer ctx.ObjUnlinkDefer(&err, column)
 
 	var file *os.File
 	file, err = os.Open(wikiArticlesXmlBzip2Filename)
