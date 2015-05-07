@@ -47,7 +47,6 @@ var SearchWidget = {
       vm.results(data.results.map(function(result) {
         return new Result(result)
       }))
-      m.redraw()
     })
 
     this.search = function() {
