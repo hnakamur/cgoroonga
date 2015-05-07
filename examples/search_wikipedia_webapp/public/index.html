@@ -22,9 +22,9 @@
 <script src="/js/observable.js"></script>
 <script>
 Result = function(data) {
-  this.title = m.prop(data && data.title || "");
-  this.text = m.prop(data && data.text || "");
-};
+  this.title = m.prop(data && data.title || "")
+  this.text = m.prop(data && data.text || "")
+}
 
 Observable.on(['search'], function(data) {
   var url = "/search"
@@ -39,178 +39,188 @@ Observable.on(['search'], function(data) {
   })
 })
 
-var SearchWidget = (function () {
-  var vm = {
-    display: m.prop('none'),
-    searchWord: m.prop(''),
-    currentPage: m.prop(1),
-    itemsPerPage: m.prop(10),
-    results: m.prop([]),
-    numItems: m.prop(0),
-    numPages: function() {
-      return Math.floor((vm.numItems() - 1) / vm.itemsPerPage()) + 1
-    }
-  }
+var SearchWidget = {
+  controller: function() {
+    Observable.on(['searchDone'], function(data) {
+      vm.resultsVisible(true)
+      vm.numItems(data.matchedCount)
+      vm.results(data.results.map(function(result) {
+        return new Result(result)
+      }))
+      m.redraw()
+    })
 
-  var queryParams = function() {
-    var params = {}
-    var a = window.location.search.substr(1).split('&')
-    for (var i = 0, len = a.length; i < len; i++) {
-      var b = a[i].split('=', 2)
-      if (b[0] !== '') {
-        params[b[0]] = decodeURIComponent(b[1])
-      }
-    }
-    return params
-  }
-
-  return {
-    controller: function() {
-      Observable.on(['searchDone'], function(data) {
-        vm.display('block')
-        vm.numItems(data.matchedCount)
-        vm.results(data.results.map(function(result) {
-          return new Result(result)
-        }))
+    this.search = function() {
+      vm.currentPage(1)
+      m.route('q=' + encodeURIComponent(vm.searchWord()) + '&start=' + 0)
+      Observable.trigger('search', {
+        searchWord: vm.searchWord(),
+        offset: 0,
+        limit: vm.itemsPerPage()
       })
-
-      this.search = function() {
-        vm.currentPage(1)
-        m.route('q=' + encodeURIComponent(vm.searchWord()) + '&start=' + 0)
-        Observable.trigger('search', {
-          searchWord: vm.searchWord(),
-          offset: 0,
-          limit: vm.itemsPerPage()
-        })
-        return false
-      }
-      this.jumpToPage = function(page) {
-        var offset = (page - 1) * vm.itemsPerPage()
-        vm.currentPage(page)
-        m.route('q=' + encodeURIComponent(vm.searchWord()) + '&start=' + offset)
-        Observable.trigger('search', {
-          searchWord: vm.searchWord(),
-          offset: offset,
-          limit: vm.itemsPerPage()
-        })
-        return false
-      }
-
-      var params = queryParams()
-      if (params.q) {
-        vm.searchWord(params.q)
-        this.jumpToPage(Math.floor(params.start / vm.itemsPerPage()) + 1)
-      }
-    },
-    view: function(ctrl) {
-      return [
-        m.component(SearchForm, {
-          searchWord: vm.searchWord,
-          onsubmit: ctrl.search
-        }),
-        m.component(SearchResultWidget, {
-          display: vm.display,
-          numItems: vm.numItems,
-          results: vm.results
-        }),
-        m.component(PaginationWidget, {
-          display: vm.display,
-          currentPage: vm.currentPage,
-          numPages: vm.numPages,
-          onclick: ctrl.jumpToPage
-        })
-      ]
+      return false
     }
-  }
-})()
+    this.jumpToPage = function(page) {
+      var offset = (page - 1) * vm.itemsPerPage()
+      vm.currentPage(page)
+      m.route('q=' + encodeURIComponent(vm.searchWord()) + '&start=' + offset)
+      Observable.trigger('search', {
+        searchWord: vm.searchWord(),
+        offset: offset,
+        limit: vm.itemsPerPage()
+      })
+      return false
+    }
 
-var SearchForm = (function() {
-  return {
-    controller: function() {},
-    view: function(ctrl, args) {
-      return m('form.search[method=get]',
-          {onsubmit: args.onsubmit.bind(this)},
+    var vm = {
+      searchWord: m.prop(''),
+      currentPage: m.prop(1),
+      itemsPerPage: m.prop(10),
+      resultsVisible: m.prop(false),
+      results: m.prop([]),
+      numItems: m.prop(0),
+      numPages: function() {
+        return Math.floor((vm.numItems() - 1) / vm.itemsPerPage()) + 1
+      }
+    }
+    this.vm = vm
+
+    var queryParams = function() {
+      var params = {}
+      var a = window.location.search.substr(1).split('&')
+      for (var i = 0, len = a.length; i < len; i++) {
+        var b = a[i].split('=', 2)
+        if (b[0] !== '') {
+          params[b[0]] = decodeURIComponent(b[1])
+        }
+      }
+      return params
+    }
+    var params = queryParams()
+    if (params.q) {
+      vm.searchWord(params.q)
+      this.jumpToPage(Math.floor(params.start / vm.itemsPerPage()) + 1)
+    }
+  },
+  view: function(ctrl) {
+    var vm = ctrl.vm
+    return [
+      m.component(SearchForm, {
+        searchWord: vm.searchWord,
+        onsubmit: ctrl.search
+      }),
+      m.component(SearchResultWidget, {
+        resultsVisible: vm.resultsVisible,
+        numItems: vm.numItems,
+        results: vm.results
+      }),
+      m.component(PaginationWidget, {
+        resultsVisible: vm.resultsVisible,
+        currentPage: vm.currentPage,
+        numPages: vm.numPages,
+        onclick: ctrl.jumpToPage
+      })
+    ]
+  }
+}
+
+var SearchForm = {
+  view: function(ctrl, args) {
+    return m('form.search[method=get]',
+      {onsubmit: args.onsubmit.bind(this)},
       [
         m('input', {
           onchange: m.withAttr('value', args.searchWord),
           value: args.searchWord()
         }),
         m('input[type=submit][value=Search]')
-      ])
-    }
+      ]
+    )
   }
-})()
+}
 
-var SearchResultWidget = (function() {
-  return {
-    view: function(ctrl, args) {
-      var wikipediaLink = function(title) {
-        return "https://ja.wikipedia.org/wiki/" + encodeURIComponent(title())
+var SearchResultWidget = {
+  view: function(ctrl, args) {
+    if (!args.resultsVisible()) {
+      // Note: We must return some virtual element.
+      // If I return "", I get the following error.
+      // Uncaught Error: Component template must return a virtual element, not an array, string, etc.
+      return m('.results[style=display:none]')
+    }
+
+    var wikipediaLink = function(title) {
+      return "https://ja.wikipedia.org/wiki/" + encodeURIComponent(title())
+    }
+    return m('.results', [
+      m('.matchedCount', '検索結果 約' + args.numItems() + '件'), 
+      args.results().map(function(result, index) {
+        return m(".result", [
+          m(".title", [
+            m("a[href=" + wikipediaLink(result.title) + "][target=_blank]",
+              result.title())
+          ]),
+          m(".text", result.text())
+        ])
+      })
+    ])
+  }
+}
+
+var PaginationWidget = {
+  controller: function() {
+    this.vm = {
+      maxViewablePages: m.prop(9) // must be an odd number
+    }
+  },
+  view: function(ctrl, args) {
+    var vm = ctrl.vm
+    if (!args.resultsVisible()) {
+      // Note: We must return some virtual element.
+      // If I return "", I get the following error.
+      // Uncaught Error: Component template must return a virtual element, not an array, string, etc.
+      return m('.pagination[style=display:none]')
+    }
+
+    var numPages = args.numPages()
+    var currentPage = args.currentPage()
+    var hasPrevPage = currentPage > 1
+    var hasNextPage = currentPage < numPages
+    var viewablePages = function() {
+      var maxViewablePages = vm.maxViewablePages()
+      var viewablePageCount = Math.min(numPages, maxViewablePages)
+      var startPage = currentPage - Math.floor(viewablePageCount / 2)
+      var endPage = startPage + viewablePageCount
+      if (startPage < 1) {
+        startPage = 1
+        endPage = viewablePageCount
+      } else if (endPage > numPages) {
+        startPage = numPages - viewablePageCount
+        endPage = numPages
       }
-      return m('.results[style="display:' + args.display() + '"]', [
-        m('.matchedCount', '検索結果 約' + args.numItems() + '件'), 
-        args.results().map(function(result, index) {
-          return m(".result", [
-            m(".title", [
-              m("a[href=" + wikipediaLink(result.title) + "][target=_blank]",
-                result.title())
-            ]),
-            m(".text", result.text())
-          ])
-        })
-      ])
-    }
-  }
-})()
+      var pages = []
 
-var PaginationWidget = (function(){
-  var vm = {
-    maxViewablePages: m.prop(9) // must be an odd number
-  }
-
-  return {
-    view: function(ctrl, args) {
-      var numPages = args.numPages()
-      var currentPage = args.currentPage()
-      var hasPrevPage = currentPage > 1
-      var hasNextPage = currentPage < numPages
-      var viewablePages = function() {
-        var maxViewablePages = vm.maxViewablePages()
-        var viewablePageCount = Math.min(numPages, maxViewablePages)
-        var startPage = currentPage - Math.floor(viewablePageCount / 2)
-        var endPage = startPage + viewablePageCount
-        if (startPage < 1) {
-          startPage = 1
-          endPage = viewablePageCount
-        } else if (endPage > numPages) {
-          startPage = numPages - viewablePageCount
-          endPage = numPages
-        }
-        var pages = []
-
-        for (var i = startPage; i <= endPage; i++) {
-          pages.push(i)
-        }
-        return pages
+      for (var i = startPage; i <= endPage; i++) {
+        pages.push(i)
       }
-      return m('.pagination[style="display:' + args.display() + '"]', [
-        hasPrevPage ?
-          m('a.prevPage[href=#]',
-            {onclick: args.onclick.bind(this, currentPage - 1)}, '前へ') :
-            undefined,
-        viewablePages().map(function(page) {
-          return page === currentPage ? m('span.page', page) :
-            m('a.page[href=#]',
-              {onclick: args.onclick.bind(this, page)}, page)
-        }),
-        hasNextPage ?
-          m('a.nextPage[href=#]',
-            {onclick: args.onclick.bind(this, currentPage + 1)}, '次へ') :
-            undefined
-      ])
+      return pages
     }
+    return m('.pagination', [
+      hasPrevPage ?
+        m('a.prevPage[href=#]',
+          {onclick: args.onclick.bind(this, currentPage - 1)}, '前へ') :
+          undefined,
+      viewablePages().map(function(page) {
+        return page === currentPage ? m('span.page', page) :
+          m('a.page[href=#]',
+            {onclick: args.onclick.bind(this, page)}, page)
+      }),
+      hasNextPage ?
+        m('a.nextPage[href=#]',
+          {onclick: args.onclick.bind(this, currentPage + 1)}, '次へ') :
+          undefined
+    ])
   }
-})()
+}
 
 m.mount(document.body, SearchWidget)
 </script>
