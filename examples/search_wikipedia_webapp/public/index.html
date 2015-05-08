@@ -34,11 +34,10 @@ Result = function(data) {
 }
 
 Observable.on(['search'], function(data) {
-  var url = "/search"
+  var url = "/search?offset=" + data.offset + "&limit=" + data.limit
   var q = data.searchWord
   if (q !== "") {
-    url += "?q=" + encodeURIComponent("_key:@" + q + " OR text:@" + q) +
-      "&offset=" + data.offset + "&limit=" + data.limit
+    url += "&q=" + encodeURIComponent("_key:@" + q + " OR text:@" + q)
   }
   return m.request({method: "GET", url: url})
   .then(function(data) {
