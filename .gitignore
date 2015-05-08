@@ -1,2 +1,4 @@
 *.db
 *.db.*
+examples/import_wikipedia/import_wikipedia
+examples/search_wikipedia_webapp/search_wikipedia_webapp
