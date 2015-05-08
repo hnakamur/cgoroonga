@@ -21,6 +21,10 @@
 </style>
 </head>
 <body>
+<h1>groongaでWikipedia検索のサンプル</h1>
+<p><a href="http://dumps.wikimedia.org/jawiki/20150402/">jawiki dump progress on 20150402</a>のjawiki-20150402-pages-articles1.xml.bz2〜jawiki-20150402-pages-articles4.xml.bz2を取り込んだgroongaのデータベースに対してページタイトルと本文で全文検索するサンプルです。</p>
+<div id="searchWidget"></div>
+
 <script src="/js/mithril.js"></script>
 <script src="/js/observable.js"></script>
 <script>
@@ -224,7 +228,7 @@ var PaginationWidget = {
   }
 }
 
-m.mount(document.body, SearchWidget)
+m.mount(document.getElementById('searchWidget'), SearchWidget)
 </script>
 <body>
 </html>
