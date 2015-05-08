@@ -15,4 +15,8 @@ GRN_API void go_grn_text_init(grn_obj *text, unsigned char impl_flags);
 GRN_API grn_rc go_grn_text_put(grn_ctx *ctx, grn_obj *bulk, const char *str, unsigned int len);
 GRN_API void go_grn_record_init(grn_obj *obj, unsigned char flags, grn_id domain);
 
+GRN_API void go_grn_time_init(grn_obj *obj, unsigned char impl_flags);
+GRN_API void go_grn_time_set(grn_ctx *ctx, grn_obj *obj, long long int unix_usec);
+GRN_API long long int go_grn_time_value(grn_obj *obj);
+
 #endif

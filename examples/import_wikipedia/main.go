@@ -7,25 +7,39 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	grn "github.com/hnakamur/cgoroonga"
 )
 
 type Page struct {
-	Title string `xml:"title"`
-	Text  string `xml:"revision>text"`
+	Title     string `xml:"title"`
+	Timestamp string `xml:"revision>timestamp"`
+	Text      string `xml:"revision>text"`
 }
 
-func addArticle(ctx *grn.Ctx, table, column *grn.Obj, title, text string) error {
+func addArticle(ctx *grn.Ctx, table, textColumn, updatedAtColumn *grn.Obj, title, text, timestamp string) error {
 	recordID, _, err := ctx.TableAdd(table, title)
 	if err != nil {
 		return err
 	}
 
-	var value grn.Obj
-	grn.TextInit(&value, 0)
-	ctx.TextPut(&value, text)
-	return ctx.ObjSetValue(column, recordID, &value, grn.OBJ_SET)
+	var textValue grn.Obj
+	grn.TextInit(&textValue, 0)
+	ctx.TextPut(&textValue, text)
+	err = ctx.ObjSetValue(textColumn, recordID, &textValue, grn.OBJ_SET)
+	if err != nil {
+		return err
+	}
+
+	updatedAt, err := time.Parse(time.RFC3339, timestamp)
+	if err != nil {
+		return err
+	}
+	var updatedAtValue grn.Obj
+	grn.TimeInit(&updatedAtValue, 0)
+	ctx.TimeSet(&updatedAtValue, updatedAt)
+	return ctx.ObjSetValue(updatedAtColumn, recordID, &updatedAtValue, grn.OBJ_SET)
 }
 
 func closeFileDefer(err *error, f *os.File) {
@@ -63,13 +77,19 @@ func run(dbFilename, wikiArticlesXmlBzip2Filename string) (err error) {
 	}
 	defer ctx.ObjUnlinkDefer(&err, table)
 
-	columnType := ctx.At(grn.DB_TEXT)
-	column, err := ctx.ColumnOpenOrCreate(table, "text", "",
-		grn.OBJ_PERSISTENT|grn.OBJ_COLUMN_SCALAR, columnType)
+	textColumn, err := ctx.ColumnOpenOrCreate(table, "text", "",
+		grn.OBJ_PERSISTENT|grn.OBJ_COLUMN_SCALAR, ctx.At(grn.DB_TEXT))
 	if err != nil {
 		return
 	}
-	defer ctx.ObjUnlinkDefer(&err, column)
+	defer ctx.ObjUnlinkDefer(&err, textColumn)
+
+	updatedAtColumn, err := ctx.ColumnOpenOrCreate(table, "updated_at", "",
+		grn.OBJ_PERSISTENT|grn.OBJ_COLUMN_SCALAR, ctx.At(grn.DB_TIME))
+	if err != nil {
+		return
+	}
+	defer ctx.ObjUnlinkDefer(&err, updatedAtColumn)
 
 	var file *os.File
 	file, err = os.Open(wikiArticlesXmlBzip2Filename)
@@ -94,7 +114,8 @@ func run(dbFilename, wikiArticlesXmlBzip2Filename string) (err error) {
 				var p Page
 				decoder.DecodeElement(&p, &se)
 
-				err = addArticle(ctx, table, column, p.Title, p.Text)
+				err = addArticle(ctx, table, textColumn, updatedAtColumn,
+					p.Title, p.Text, p.Timestamp)
 				if err != nil {
 					return
 				}

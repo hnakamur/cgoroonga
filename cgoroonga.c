@@ -33,3 +33,15 @@ GRN_API int go_grn_bulk_vsize(grn_obj *bulk) {
 GRN_API void go_grn_record_init(grn_obj *obj, unsigned char flags, grn_id domain) {
 	GRN_VALUE_FIX_SIZE_INIT(obj, flags, domain);
 }
+
+GRN_API void go_grn_time_init(grn_obj *obj, unsigned char impl_flags) {
+	GRN_TIME_INIT(obj, impl_flags);
+}
+
+GRN_API void go_grn_time_set(grn_ctx *ctx, grn_obj *obj, long long int unix_usec) {
+	GRN_TIME_SET(ctx, obj, unix_usec);
+}
+
+GRN_API long long int go_grn_time_value(grn_obj *obj) {
+	return GRN_BULK_VSIZE(obj) ? GRN_INT64_VALUE(obj) : 0;
+}
