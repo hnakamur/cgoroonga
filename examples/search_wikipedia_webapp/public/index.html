@@ -31,6 +31,7 @@
 Result = function(data) {
   this.title = m.prop(data && data.title || "")
   this.text = m.prop(data && data.text || "")
+  this.updated_at = m.prop(new Date(data && data.updated_at * 1000 || 0))
 }
 
 Observable.on(['search'], function(data) {
@@ -156,6 +157,9 @@ var SearchResultWidget = {
     var wikipediaLink = function(title) {
       return "https://ja.wikipedia.org/wiki/" + encodeURIComponent(title())
     }
+    var formatDate = function(date) {
+      return [date.getFullYear(), date.getMonth() + 1, date.getDate()].join('/')
+    }
     return m('.results', [
       m('.matchedCount', '検索結果 約' + args.numItems() + '件'), 
       args.results().map(function(result, index) {
@@ -164,6 +168,7 @@ var SearchResultWidget = {
             m("a[href=" + wikipediaLink(result.title) + "][target=_blank]",
               result.title())
           ]),
+          m(".updated_at", formatDate(result.updated_at())),
           m(".text", result.text())
         ])
       })

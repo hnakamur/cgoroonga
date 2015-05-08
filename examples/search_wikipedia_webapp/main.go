@@ -106,6 +106,14 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer ctx.ObjUnlinkDefer(&err, textColumn)
 
+	var updatedAtColumn *grn.Obj
+	updatedAtColumn, err = ctx.ObjColumn(res, "updated_at")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer ctx.ObjUnlinkDefer(&err, updatedAtColumn)
+
 	tc, err := ctx.TableCursorOpen(res, "", "", offset, limitCount, grn.CURSOR_ASCENDING)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -135,6 +143,10 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		ctx.ObjGetValue(textColumn, id, &buf)
 		text := grn.BulkHead(&buf)
 
+		grn.TimeInit(&buf, 0)
+		ctx.ObjGetValue(updatedAtColumn, id, &buf)
+		updatedAt := grn.TimeValue(&buf)
+
 		r := []rune(text)
 		if len(r) >= 200 {
 			text = string(r[:200]) + "…"
@@ -160,6 +172,8 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		bw.Write(jsonBuf)
+		bw.WriteString(`,"updated_at":`)
+		bw.WriteString(strconv.FormatInt(updatedAt.Unix(), 10))
 		bw.WriteString(`}`)
 	}
 	ctx.TableCursorClose(tc)
