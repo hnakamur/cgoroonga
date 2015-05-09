@@ -227,9 +227,11 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 
 var ctx *grn.Ctx
 var dbFilename string
+var listenAddress string
 
 func init() {
 	flag.StringVar(&dbFilename, "d", "wikipedia_ja.db", "database filename")
+	flag.StringVar(&listenAddress, "l", ":8080", "listen address (address:port)")
 }
 
 func main() {
@@ -259,5 +261,5 @@ func main() {
 	http.HandleFunc("/", staticFileHandler("public/index.html"))
 	http.HandleFunc("/js/mithril.js", staticFileHandler("public/js/mithril.js"))
 	http.HandleFunc("/js/observable.js", staticFileHandler("public/js/observable.js"))
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(listenAddress, nil)
 }
