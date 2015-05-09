@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -14,7 +15,7 @@ import (
 
 func staticFileHandler(path string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, path)
+		http.ServeFile(w, r, filepath.Join(htmlDir, path))
 	}
 }
 
@@ -228,10 +229,12 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 var ctx *grn.Ctx
 var dbFilename string
 var listenAddress string
+var htmlDir string
 
 func init() {
 	flag.StringVar(&dbFilename, "d", "wikipedia_ja.db", "database filename")
 	flag.StringVar(&listenAddress, "l", ":8080", "listen address (address:port)")
+	flag.StringVar(&htmlDir, "h", "public", "html directory")
 }
 
 func main() {
@@ -258,8 +261,8 @@ func main() {
 	defer ctx.ObjUnlinkDefer(&err, db)
 
 	http.HandleFunc("/search", searchHandler)
-	http.HandleFunc("/", staticFileHandler("public/index.html"))
-	http.HandleFunc("/js/mithril.js", staticFileHandler("public/js/mithril.js"))
-	http.HandleFunc("/js/observable.js", staticFileHandler("public/js/observable.js"))
+	http.HandleFunc("/", staticFileHandler("index.html"))
+	http.HandleFunc("/js/mithril.js", staticFileHandler("js/mithril.js"))
+	http.HandleFunc("/js/observable.js", staticFileHandler("js/observable.js"))
 	http.ListenAndServe(listenAddress, nil)
 }
