@@ -26,6 +26,18 @@ func (c *Ctx) ExprParse(expr *Obj, str string, defaultColumn *Obj, defaultMode, 
 	return nil
 }
 
+func (c *Ctx) ExprAppendOp(expr *Obj, op Operator, nargs int) error {
+	rc := C.grn_expr_append_op(
+		(*C.struct__grn_ctx)(unsafe.Pointer(c)),
+		(*C.struct__grn_obj)(unsafe.Pointer(expr)),
+		C.grn_operator(op),
+		C.int(nargs))
+	if rc != SUCCESS {
+		return errorFromRc(rc)
+	}
+	return nil
+}
+
 func (c *Ctx) ExprCreateForQuery(table *Obj) (expr, var_ *Obj, err error) {
 	cCtx := (*C.struct__grn_ctx)(unsafe.Pointer(c))
 	cExpr := C.grn_expr_create(cCtx, nil, 0)

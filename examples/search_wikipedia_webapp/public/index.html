@@ -3,6 +3,12 @@
 <head>
 <title>Wikipedia pages local search</title>
 <style>
+input[type=submit] {
+  margin-right: 20px;
+}
+select[name=timespan] {
+  margin-left: 4px;
+}
 .results {
   margin-top: 1em;
 }
@@ -35,20 +41,20 @@ Result = function(data) {
 }
 
 Observable.on(['search'], function(data) {
-  var url = "/search?offset=" + data.offset + "&limit=" + data.limit
+  var url = '/search?offset=' + data.offset + '&limit=' + data.limit + '&sd=' + data.startDate
   var q = data.searchWord
-  if (q !== "") {
-    url += "&q=" + encodeURIComponent("_key:@" + q + " OR text:@" + q)
+  if (q !== '') {
+    url += '&q=' + encodeURIComponent('_key:@' + q + ' OR text:@' + q)
   }
-  return m.request({method: "GET", url: url})
+  return m.request({method: 'GET', url: url})
   .then(function(data) {
-    Observable.trigger('searchDone', data)
+    Observable.trigger('updateResults', data)
   })
 })
 
 var SearchWidget = {
   controller: function() {
-    Observable.on(['searchDone'], function(data) {
+    Observable.on(['updateResults'], function(data) {
       vm.resultsVisible(true)
       vm.numItems(data.matchedCount)
       vm.results(data.results.map(function(result) {
@@ -56,26 +62,47 @@ var SearchWidget = {
       }))
     })
 
+    var formatDate = function(date) {
+      return [date.getFullYear(), date.getMonth() + 1, date.getDate()].join('-')
+    }
+
     this.search = function() {
       vm.currentPage(1)
-      m.route('q=' + encodeURIComponent(vm.searchWord()) + '&start=' + 0)
+      var offset = vm.offset()
+      m.route('q=' + encodeURIComponent(vm.searchWord()) + '&start=' + offset + '&ts=' + vm.timespan())
       Observable.trigger('search', {
         searchWord: vm.searchWord(),
-        offset: 0,
-        limit: vm.itemsPerPage()
+        offset: offset,
+        limit: vm.itemsPerPage(),
+        startDate: vm.startDate()
       })
       return false
     }
     this.jumpToPage = function(page) {
-      var offset = (page - 1) * vm.itemsPerPage()
       vm.currentPage(page)
-      m.route('q=' + encodeURIComponent(vm.searchWord()) + '&start=' + offset)
+      var offset = vm.offset()
+      m.route('q=' + encodeURIComponent(vm.searchWord()) + '&start=' + offset + '&ts=' + vm.timespan())
       Observable.trigger('search', {
         searchWord: vm.searchWord(),
         offset: offset,
-        limit: vm.itemsPerPage()
+        limit: vm.itemsPerPage(),
+        startDate: vm.startDate()
       })
       return false
+    }
+    this.onchangetimespan = function(value) {
+      vm.currentPage(1)
+      var offset = vm.offset()
+      var searchWord = vm.searchWord()
+      m.route('q=' + encodeURIComponent(searchWord) + '&start=' + offset + '&ts=' + vm.timespan())
+      if (searchWord) {
+        Observable.trigger('search', {
+          searchWord: searchWord,
+          offset: offset,
+          limit: vm.itemsPerPage(),
+          startDate: vm.startDate()
+        })
+      }
     }
 
     var vm = {
@@ -87,6 +114,20 @@ var SearchWidget = {
       numItems: m.prop(0),
       numPages: function() {
         return Math.floor((vm.numItems() - 1) / vm.itemsPerPage()) + 1
+      },
+      offset: function() {
+        return (vm.currentPage() - 1) * vm.itemsPerPage()
+      },
+      timespan: m.prop(''),
+      startDate: function() {
+        var timespan = vm.timespan()
+        if (timespan === '') {
+          return ''
+        }
+        var daysMap = {'week': 7, 'month': 31, 'year': 365}
+        var d = new Date()
+        d.setTime(d.getTime() - daysMap[timespan] * 24 * 60 * 60 * 1000)
+        return formatDate(d)
       }
     }
     this.vm = vm
@@ -105,6 +146,9 @@ var SearchWidget = {
     var params = queryParams()
     if (params.q) {
       vm.searchWord(params.q)
+      if (params.ts) {
+        vm.timespan(params.ts)
+      }
       this.jumpToPage(Math.floor(params.start / vm.itemsPerPage()) + 1)
     }
   },
@@ -113,7 +157,17 @@ var SearchWidget = {
     return [
       m.component(SearchForm, {
         searchWord: vm.searchWord,
-        onsubmit: ctrl.search
+        onsubmit: ctrl.search,
+        timespan: {
+          onchange: ctrl.onchangetimespan,
+          selectedValue: vm.timespan,
+          options: m.prop([
+            {value: m.prop(''), label: m.prop('無し')},
+            {value: m.prop('week'), label: m.prop('1週間')},
+            {value: m.prop('month'), label: m.prop('1ヶ月')},
+            {value: m.prop('year'), label: m.prop('1年')}
+          ])
+        }
       }),
       m.component(SearchResultWidget, {
         resultsVisible: vm.resultsVisible,
@@ -130,16 +184,54 @@ var SearchWidget = {
   }
 }
 
+var SelectWidget = {
+  controller: function(args) {
+    var vm = {
+      name: args.name,
+      options: args.options,
+      selectedValue: args.selectedValue,
+      onchange: args.onchange
+    }
+    this.vm = vm
+    this.onchange = function(e) {
+      var select = e.target
+      var value = select.options[select.selectedIndex].value
+      vm.selectedValue(value)
+      if (vm.onchange) {
+        vm.onchange(value)
+      }
+    }
+  },
+  view: function(ctrl) {
+    var vm = ctrl.vm
+    var name = vm.name && vm.name()
+    var selectedValue = vm.selectedValue()
+    var options = vm.options()
+    return m(name ? 'select[name=' + name + ']' : 'select',
+      {onchange: ctrl.onchange},
+      [
+        options.map(function(option) {
+          return m('option[value="' + option.value() + '"]' +
+            (option.value() === selectedValue ? '[selected=selected]' : ''),
+            option.label())
+        })
+      ]
+    )
+  }
+}
+
 var SearchForm = {
   view: function(ctrl, args) {
     return m('form.search[method=get]',
       {onsubmit: args.onsubmit.bind(this)},
       [
-        m('input', {
+        m('input[name=q]', {
           onchange: m.withAttr('value', args.searchWord),
           value: args.searchWord()
         }),
-        m('input[type=submit][value=Search]')
+        m('input[type=submit][value=Search]'),
+        m('label.timepan', '期間指定:'),
+        m.component(SelectWidget, args.timespan)
       ]
     )
   }
@@ -209,8 +301,10 @@ var PaginationWidget = {
       }
       var pages = []
 
-      for (var i = startPage; i <= endPage; i++) {
-        pages.push(i)
+      if (startPage < endPage) {
+        for (var i = startPage; i <= endPage; i++) {
+          pages.push(i)
+        }
       }
       return pages
     }

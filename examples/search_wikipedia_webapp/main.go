@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	grn "github.com/hnakamur/cgoroonga"
 )
@@ -19,7 +20,7 @@ func staticFileHandler(path string) func(w http.ResponseWriter, r *http.Request)
 
 func formIntValue(r *http.Request, key string, defaultValue int) (int, error) {
 	strValue := r.FormValue(key)
-	var intValue int = defaultValue
+	intValue := defaultValue
 	if strValue != "" {
 		var err error
 		intValue, err = strconv.Atoi(strValue)
@@ -30,6 +31,21 @@ func formIntValue(r *http.Request, key string, defaultValue int) (int, error) {
 		}
 	}
 	return intValue, nil
+}
+
+func formDateValue(r *http.Request, key string, defaultValue time.Time) (time.Time, error) {
+	strValue := r.FormValue(key)
+	timeValue := defaultValue
+	if strValue != "" {
+		var err error
+		timeValue, err = time.Parse("2006-1-2", strValue)
+		if err != nil {
+			return defaultValue,
+				fmt.Errorf("date parameter expected, but got \"%s\" for parameter \"%s\"",
+					strValue, key)
+		}
+	}
+	return timeValue, nil
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
@@ -47,26 +63,52 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	startDate, err := formDateValue(r, "sd", time.Unix(0, 0))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	bw := bufio.NewWriter(w)
 
 	table := ctx.Get("Articles")
 	defer ctx.ObjUnlinkDefer(&err, table)
 
-	cond, v, err := ctx.ExprCreateForQuery(table)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer ctx.ObjUnlinkDefer(&err, cond)
-	defer ctx.ObjUnlinkDefer(&err, v)
-
 	var res *grn.Obj
-	if q != "" {
-		flags := grn.EXPR_SYNTAX_QUERY | grn.EXPR_ALLOW_PRAGMA | grn.EXPR_ALLOW_COLUMN
-		err = ctx.ExprParse(cond, q, nil, grn.OP_MATCH, grn.OP_AND, flags)
+	if q != "" || !startDate.IsZero() {
+		cond, v, err := ctx.ExprCreateForQuery(table)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
+		}
+		defer ctx.ObjUnlinkDefer(&err, cond)
+		defer ctx.ObjUnlinkDefer(&err, v)
+
+		if q != "" {
+			flags := grn.EXPR_SYNTAX_QUERY | grn.EXPR_ALLOW_PRAGMA | grn.EXPR_ALLOW_COLUMN
+			err = ctx.ExprParse(cond, q, nil, grn.OP_MATCH, grn.OP_AND, flags)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+		if !startDate.IsZero() {
+			usecStartTime := startDate.UnixNano() / 1000
+			filter := "updated_at >= " + strconv.FormatInt(usecStartTime, 10)
+			err = ctx.ExprParse(cond, filter, nil, grn.OP_MATCH, grn.OP_AND,
+				grn.EXPR_SYNTAX_SCRIPT)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			if q != "" {
+				err = ctx.ExprAppendOp(cond, grn.OP_AND, 2)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+			}
 		}
 
 		res, err = ctx.TableSelect(table, cond, nil, grn.OP_OR)
