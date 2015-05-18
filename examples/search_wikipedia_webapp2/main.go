@@ -95,6 +95,7 @@ func getIndex(c *gin.Context) {
 	var err error
 	viewablePages := []int{}
 	results := []Result{}
+	var cond *grn.Obj
 	if hasQueries {
 		query = queries[0]
 		q := fmt.Sprintf("_key:@%s OR text:@%s", query, query)
@@ -119,7 +120,8 @@ func getIndex(c *gin.Context) {
 
 		var res *grn.Obj
 		if q != "" || !startDate.IsZero() {
-			cond, v, err := ctx.ExprCreateForQuery(table)
+			var v *grn.Obj
+			cond, v, err = ctx.ExprCreateForQuery(table)
 			if err != nil {
 				c.String(http.StatusInternalServerError, err.Error())
 				return
@@ -233,16 +235,32 @@ func getIndex(c *gin.Context) {
 			ctx.ObjGetValue(textColumn, id, &buf)
 			text := grn.BulkHead(&buf)
 
+			flags := grn.SNIP_COPY_TAG | grn.SNIP_SKIP_LEADING_SPACES
+			textManLen := 200
+			snippet := ctx.ExprSnippet(cond, flags, textManLen, 1, true,
+				[][]string{
+					[]string{"<mark>", "</mark>"},
+				})
+			snipResults, err := ctx.SnipExec(snippet, text)
+			if err != nil {
+				c.String(http.StatusInternalServerError, err.Error())
+				return
+			}
+			if len(snipResults) > 0 {
+				text = "…" + snipResults[0] + "…"
+
+			} else {
+				if utf8.RuneCountInString(text) >= textManLen {
+					r := []rune(text)
+					text = string(r[:textManLen]) + "…"
+				}
+			}
+
 			grn.TimeInit(&buf, 0)
 			ctx.ObjGetValue(updatedAtColumn, id, &buf)
 			updatedAt := grn.TimeValue(&buf)
 
 			url := titleToURL(title)
-
-			if utf8.RuneCountInString(text) >= 200 {
-				r := []rune(text)
-				text = string(r[:200]) + "…"
-			}
 
 			results = append(results, Result{
 				URL:       url,

@@ -45,3 +45,33 @@ GRN_API void go_grn_time_set(grn_ctx *ctx, grn_obj *obj, long long int unix_usec
 GRN_API long long int go_grn_time_value(grn_obj *obj) {
 	return GRN_BULK_VSIZE(obj) ? GRN_INT64_VALUE(obj) : 0;
 }
+
+char **go_grn_alloc_str_array(int n) {
+	return (char **)malloc(sizeof(char *) * n);
+}
+
+void go_grn_str_array_set(char **array, int i, char *str) {
+	array[i] = str;
+}
+
+void go_grn_str_array_free_elems(char **array, int n) {
+	for (int i = 0; i < n; i++) {
+		free(array[i]);
+	}
+}
+
+unsigned int *go_grn_alloc_uint_array(int n) {
+	return (unsigned int *)malloc(sizeof(unsigned int) * n);
+}
+
+void go_grn_uint_array_set(unsigned int *array, int i, unsigned int value) {
+	array[i] = value;
+}
+
+grn_snip_mapping *go_grn_mapping_html_escape() {
+	return GRN_SNIP_MAPPING_HTML_ESCAPE;
+}
+
+char *go_grn_malloc_str(int len) {
+	return (char *)malloc(sizeof(char) * len);
+}

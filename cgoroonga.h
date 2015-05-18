@@ -19,4 +19,11 @@ GRN_API void go_grn_time_init(grn_obj *obj, unsigned char impl_flags);
 GRN_API void go_grn_time_set(grn_ctx *ctx, grn_obj *obj, long long int unix_usec);
 GRN_API long long int go_grn_time_value(grn_obj *obj);
 
+char **go_grn_alloc_str_array(int n);
+void go_grn_str_array_set(char **array, int i, char *str);
+void go_grn_str_array_free_elems(char **array, int n);
+unsigned int *go_grn_alloc_uint_array(int n);
+void go_grn_uint_array_set(unsigned int *array, int i, unsigned int value);
+grn_snip_mapping *go_grn_mapping_html_escape();
+char *go_grn_malloc_str(int len);
 #endif

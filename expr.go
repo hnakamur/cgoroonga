@@ -54,3 +54,79 @@ func (c *Ctx) ExprCreateForQuery(table *Obj) (expr, var_ *Obj, err error) {
 	}
 	return (*Obj)(cExpr), (*Obj)(cVar), nil
 }
+
+func (c *Ctx) ExprSnippet(expr *Obj, flags, width, maxResults int, htmlEscape bool, tagPairs [][]string) *Obj {
+	n := len(tagPairs)
+	openTags := C.go_grn_alloc_str_array(C.int(n))
+	defer C.free(unsafe.Pointer(openTags))
+	openTagLens := C.go_grn_alloc_uint_array(C.int(n))
+	defer C.free(unsafe.Pointer(openTagLens))
+	closeTags := C.go_grn_alloc_str_array(C.int(n))
+	defer C.free(unsafe.Pointer(closeTags))
+	closeTagLens := C.go_grn_alloc_uint_array(C.int(n))
+	defer C.free(unsafe.Pointer(closeTagLens))
+	for i := 0; i < n; i++ {
+		tagPair := tagPairs[i]
+		openTag := C.CString(tagPair[0])
+		closeTag := C.CString(tagPair[1])
+		C.go_grn_str_array_set(openTags, C.int(i), openTag)
+		C.go_grn_uint_array_set(openTagLens, C.int(i),
+			C.uint(C.strlen(openTag)))
+		C.go_grn_str_array_set(closeTags, C.int(i), closeTag)
+		C.go_grn_uint_array_set(closeTagLens, C.int(i),
+			C.uint(C.strlen(closeTag)))
+	}
+	defer C.go_grn_str_array_free_elems(openTags, C.int(n))
+	defer C.go_grn_str_array_free_elems(closeTags, C.int(n))
+	var mapping *C.grn_snip_mapping
+	if htmlEscape {
+		mapping = C.go_grn_mapping_html_escape()
+	}
+	return (*Obj)(C.grn_expr_snip(
+		(*C.struct__grn_ctx)(unsafe.Pointer(c)),
+		(*C.struct__grn_obj)(unsafe.Pointer(expr)),
+		C.int(flags), C.uint(width), C.uint(maxResults),
+		C.uint(n),
+		openTags, openTagLens,
+		closeTags, closeTagLens,
+		mapping))
+}
+
+func (c *Ctx) SnipExec(snip *Obj, str string) ([]string, error) {
+	cStr := C.CString(str)
+	defer C.free(unsafe.Pointer(cStr))
+	cStrLen := C.strlen(cStr)
+	var nResults uint
+	var maxTaggedLength uint
+
+	rc := C.grn_snip_exec(
+		(*C.struct__grn_ctx)(unsafe.Pointer(c)),
+		(*C.struct__grn_obj)(unsafe.Pointer(snip)),
+		cStr,
+		C.uint(cStrLen),
+		(*C.uint)(unsafe.Pointer(&nResults)),
+		(*C.uint)(unsafe.Pointer(&maxTaggedLength)))
+	if rc != SUCCESS {
+		return nil, errorFromRc(rc)
+	}
+	results := []string{}
+	var i uint
+	for i = 0; i < nResults; i++ {
+		buf := C.go_grn_malloc_str(C.int(maxTaggedLength))
+		var resultLen C.uint
+		rc := C.grn_snip_get_result(
+			(*C.struct__grn_ctx)(unsafe.Pointer(c)),
+			(*C.struct__grn_obj)(unsafe.Pointer(snip)),
+			C.uint(i),
+			buf,
+			&resultLen)
+		if rc != SUCCESS {
+			C.free(unsafe.Pointer(buf))
+			return nil, errorFromRc(rc)
+		}
+		results = append(results, C.GoString(buf))
+		C.free(unsafe.Pointer(buf))
+	}
+
+	return results, nil
+}
