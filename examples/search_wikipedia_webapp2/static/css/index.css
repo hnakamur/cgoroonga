@@ -9,3 +9,11 @@ label.timespan {
 .result {
   margin: 0.5em 0;
 }
+
+.title {
+  font-size: 1.2em;
+}
+
+.updated_at, .contet {
+  font-size: 0.8em;
+}
