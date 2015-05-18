@@ -9,7 +9,7 @@
 <input type="hidden" name="page" value="1">
 <input type="hidden" name="limit" value="10">
 <div class="input-group">
-<input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search for ...">
+<input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search for ...">
 <span class="input-group-btn">
 <button type="submit" class="btn btn-primary">Search</button>
 </span>
@@ -26,7 +26,7 @@
 </div><!-- /.form-group -->
 </form>
 </div>
-{% if hasQueries %}
+{% if q != "" %}
 <div class="results">
 <label class="matchedCount">検索結果:</label>
 <span>約{{ matchedCount }}件</span>

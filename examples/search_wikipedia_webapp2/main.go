@@ -86,21 +86,17 @@ const viewablePageCount = 9
 
 func getIndex(c *gin.Context) {
 	c.Request.ParseForm()
-	var query string
-	queries, hasQueries := c.Request.Form["q"]
+	q := c.Request.Form.Get("q")
 	timespan := c.Request.Form.Get("timespan")
+	var err error
 	var limitCount int = 10
 	var page int = 1
-	var numPages int
+	var numPages int = 1
 	var matchedCount uint
-	var err error
 	viewablePages := []int{}
 	results := []Result{}
 	var cond *grn.Obj
-	if hasQueries {
-		query = queries[0]
-		q := fmt.Sprintf("_key:@%s OR text:@%s", query, query)
-
+	if q != "" {
 		page, err = formIntValue(c, "page", 1)
 		if err != nil {
 			c.String(http.StatusBadRequest, err.Error())
@@ -123,52 +119,47 @@ func getIndex(c *gin.Context) {
 		defer ctx.ObjUnlinkDefer(&err, table)
 
 		var res *grn.Obj
-		if q != "" || !startDate.IsZero() {
-			var v *grn.Obj
-			cond, v, err = ctx.ExprCreateForQuery(table)
+		var v *grn.Obj
+		cond, v, err = ctx.ExprCreateForQuery(table)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+		defer ctx.ObjUnlinkDefer(&err, cond)
+		defer ctx.ObjUnlinkDefer(&err, v)
+
+		query := fmt.Sprintf("_key:@%s OR text:@%s", q, q)
+		flags := grn.EXPR_SYNTAX_QUERY | grn.EXPR_ALLOW_PRAGMA | grn.EXPR_ALLOW_COLUMN
+		err = ctx.ExprParse(cond, query, nil, grn.OP_MATCH, grn.OP_AND, flags)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+		if !startDate.IsZero() {
+			usecStartTime := startDate.UnixNano() / 1000
+			filter := "updated_at >= " + strconv.FormatInt(usecStartTime, 10)
+			err = ctx.ExprParse(cond, filter, nil, grn.OP_MATCH, grn.OP_AND,
+				grn.EXPR_SYNTAX_SCRIPT)
 			if err != nil {
 				c.String(http.StatusInternalServerError, err.Error())
 				return
 			}
-			defer ctx.ObjUnlinkDefer(&err, cond)
-			defer ctx.ObjUnlinkDefer(&err, v)
 
 			if q != "" {
-				flags := grn.EXPR_SYNTAX_QUERY | grn.EXPR_ALLOW_PRAGMA | grn.EXPR_ALLOW_COLUMN
-				err = ctx.ExprParse(cond, q, nil, grn.OP_MATCH, grn.OP_AND, flags)
+				err = ctx.ExprAppendOp(cond, grn.OP_AND, 2)
 				if err != nil {
 					c.String(http.StatusInternalServerError, err.Error())
 					return
 				}
 			}
-			if !startDate.IsZero() {
-				usecStartTime := startDate.UnixNano() / 1000
-				filter := "updated_at >= " + strconv.FormatInt(usecStartTime, 10)
-				err = ctx.ExprParse(cond, filter, nil, grn.OP_MATCH, grn.OP_AND,
-					grn.EXPR_SYNTAX_SCRIPT)
-				if err != nil {
-					c.String(http.StatusInternalServerError, err.Error())
-					return
-				}
-
-				if q != "" {
-					err = ctx.ExprAppendOp(cond, grn.OP_AND, 2)
-					if err != nil {
-						c.String(http.StatusInternalServerError, err.Error())
-						return
-					}
-				}
-			}
-
-			res, err = ctx.TableSelect(table, cond, nil, grn.OP_OR)
-			if err != nil {
-				c.String(http.StatusInternalServerError, err.Error())
-				return
-			}
-			defer ctx.ObjUnlinkDefer(&err, res)
-		} else {
-			res = table
 		}
+
+		res, err = ctx.TableSelect(table, cond, nil, grn.OP_OR)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+		defer ctx.ObjUnlinkDefer(&err, res)
 
 		matchedCount, err = ctx.TableSize(res)
 		if err != nil {
@@ -283,16 +274,15 @@ func getIndex(c *gin.Context) {
 	}
 
 	url_ := fmt.Sprintf("%s?q=%s&timespan=%s&limit=%d",
-		c.Request.URL.Path, url.QueryEscape(query), timespan, limitCount)
+		c.Request.URL.Path, url.QueryEscape(q), timespan, limitCount)
 	tpl, err := pongo2.FromFile("templates/index.html")
 	if err != nil {
 		c.String(500, "Internal Server Error")
 	}
 	err = tpl.ExecuteWriter(pongo2.Context{
 		"url":           url_,
-		"query":         query,
+		"q":             q,
 		"timespan":      timespan,
-		"hasQueries":    hasQueries,
 		"matchedCount":  matchedCount,
 		"results":       results,
 		"page":          page,
