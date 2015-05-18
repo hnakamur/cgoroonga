@@ -101,10 +101,13 @@ func getIndex(c *gin.Context) {
 		query = queries[0]
 		q := fmt.Sprintf("_key:@%s OR text:@%s", query, query)
 
-		page, err = formIntValue(c, "page", 0)
+		page, err = formIntValue(c, "page", 1)
 		if err != nil {
 			c.String(http.StatusBadRequest, err.Error())
 			return
+		}
+		if page < 1 {
+			page = 1
 		}
 
 		limitCount, err = formIntValue(c, "limit", 10)
