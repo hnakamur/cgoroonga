@@ -239,7 +239,7 @@ func getIndex(c *gin.Context) {
 			textManLen := 200
 			snippet := ctx.ExprSnippet(cond, flags, textManLen, 1, true,
 				[][]string{
-					[]string{"<mark>", "</mark>"},
+					[]string{"<b>", "</b>"},
 				})
 			snipResults, err := ctx.SnipExec(snippet, text)
 			if err != nil {
