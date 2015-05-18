@@ -181,10 +181,16 @@ func getIndex(c *gin.Context) {
 			startPage = 1
 		}
 		endPage := startPage + viewablePageCount
-		if endPage > numPages {
-			endPage = numPages
+		if endPage > numPages+1 {
+			endPage = numPages + 1
+			if endPage-startPage < viewablePageCount {
+				startPage = endPage - viewablePageCount
+				if startPage < 1 {
+					startPage = 1
+				}
+			}
 		}
-		for i := startPage; i <= endPage; i++ {
+		for i := startPage; i < endPage; i++ {
 			viewablePages = append(viewablePages, i)
 		}
 
