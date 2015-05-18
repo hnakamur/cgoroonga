@@ -4,19 +4,26 @@
 <h1>groongaでWikipedia検索のサンプル</h1>
 <p><a href="http://dumps.wikimedia.org/jawiki/20150402/">jawiki dump progress on 20150402</a>のjawiki-20150402-pages-articles1.xml.bz2〜jawiki-20150402-pages-articles4.xml.bz2を取り込んだgroongaのデータベースに対してページタイトルと本文で全文検索するサンプルです。</p>
 <div class="search-form">
-<form id="searchForm" method="get">
-<input type="text" name="q" value="{{ query }}">
+<form id="searchForm" method="get" class="form-inline">
+<div class="form-group">
 <input type="hidden" name="page" value="1">
 <input type="hidden" name="limit" value="10">
-<input type="submit" value="Search">
+<div class="input-group">
+<input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search for ...">
+<span class="input-group-btn">
+<button type="submit" class="btn btn-primary">Search</button>
+</span>
+</div><!-- /.form-group -->
 
-<label class="timespan">期間指定:</label>
-<select name="timespan">
+<div class="form-group">
+<label for="timespan">期間指定:</label>
+<select name="timespan" id="timespan" class="form-control">
 <option value=""{% if timespan == "" %} selected="selected"{% endif %}>無し</option>
 <option value="week"{% if timespan == "week" %} selected="selected"{% endif %}>1週間</option>
 <option value="month"{% if timespan == "month" %} selected="selected"{% endif %}>1ヶ月</option>
 <option value="year"{% if timespan == "year" %} selected="selected"{% endif %}>1年</option>
 </select>
+</div><!-- /.form-group -->
 </form>
 </div>
 {% if hasQueries %}
@@ -32,21 +39,37 @@
 {% endfor %}
 </div>
 {% if numPages > 1 %}
-<div class="pagination">
-{%if page > 1 %}
-<a class="prevPage" href="{{ url }}&page={{ page - 1 }}">前へ</a>
+<nav>
+<ul class="pagination pagination-lg">
+{% if page > 1 %}
+<li>
+<a href="{{ url }}&page={{ page - 1 }}" aria-label="Previous">
+<span aria-hidden="true">&laquo;</span>
+</a>
+</li>
+{% else %}
+<li class="disabled">
+<span aria-hidden="true">&laquo;</span>
+</li>
 {% endif %}
 {% for p in viewablePages %}
-{% if p == page %}
-<span class="page">{{ p }}</span>
-{% else %}
-<a class="page" href="{{ url }}&page={{ p }}">{{ p }}</a>
-{% endif %}
+<li{% if p == page %} class="active"{% endif %}>
+<a href="{{ url }}&page={{ p }}">{{ p }}</a>
+</li>
 {% endfor %}
 {%if page < numPages %}
-<a class="nextPage" href="{{ url }}&page={{ page + 1 }}">次へ</a>
+<li>
+<a href="{{ url }}&page={{ page + 1 }}" aria-label="Next">
+<span aria-hidden="true">&raquo;</span>
+</a>
+</li>
+{% else %}
+<li class="disabled">
+<span aria-hidden="true">&raquo;</span>
+</li>
 {% endif %}
-</div>
+</ul><!-- /.pagination -->
+</nav>
 {% endif %}
 {% endif %}
 <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
@@ -54,5 +77,9 @@
 $('select[name=timespan]').on('change', function() {
   $('#searchForm').submit()
 })
+$('input[name=q]').on('focus', function() {
+  $(this).select()
+})
+$('input[name=q]').focus()
 </script>
 {% endblock %}

@@ -1,3 +1,7 @@
+body {
+  padding: 0 16px;
+}
+
 label.timespan {
   margin-left: 20px;
 }
