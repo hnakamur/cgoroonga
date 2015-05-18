@@ -4,7 +4,7 @@
 <h1>groongaでWikipedia検索のサンプル</h1>
 <p><a href="http://dumps.wikimedia.org/jawiki/20150402/">jawiki dump progress on 20150402</a>のjawiki-20150402-pages-articles1.xml.bz2〜jawiki-20150402-pages-articles4.xml.bz2を取り込んだgroongaのデータベースに対してページタイトルと本文で全文検索するサンプルです。</p>
 <div class="search-form">
-<form method="get">
+<form id="searchForm" method="get">
 <input type="text" name="q" value="{{ query }}">
 <input type="hidden" name="page" value="1">
 <input type="hidden" name="limit" value="10">
@@ -49,4 +49,10 @@
 </div>
 {% endif %}
 {% endif %}
+<script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+<script>
+$('select[name=timespan]').on('change', function() {
+  $('#searchForm').submit()
+})
+</script>
 {% endblock %}
