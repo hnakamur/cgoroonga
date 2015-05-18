@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"html"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -247,13 +248,14 @@ func getIndex(c *gin.Context) {
 				return
 			}
 			if len(snipResults) > 0 {
-				text = "…" + snipResults[0] + "…"
+				text = "..." + snipResults[0] + "..."
 
 			} else {
 				if utf8.RuneCountInString(text) >= textManLen {
 					r := []rune(text)
-					text = string(r[:textManLen]) + "…"
+					text = string(r[:textManLen]) + "..."
 				}
+				text = html.EscapeString(text)
 			}
 
 			grn.TimeInit(&buf, 0)
