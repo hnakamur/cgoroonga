@@ -237,8 +237,8 @@ func getIndex(c *gin.Context) {
 			text := grn.BulkHead(&buf)
 
 			flags := grn.SNIP_COPY_TAG | grn.SNIP_SKIP_LEADING_SPACES
-			textManLen := 200
-			snippet := ctx.ExprSnippet(cond, flags, textManLen, 1, true,
+			textMaxLen := 200
+			snippet := ctx.ExprSnippet(cond, flags, textMaxLen, 1, true,
 				[][]string{
 					[]string{"<b>", "</b>"},
 				})
@@ -251,9 +251,9 @@ func getIndex(c *gin.Context) {
 				text = "..." + snipResults[0] + "..."
 
 			} else {
-				if utf8.RuneCountInString(text) >= textManLen {
+				if utf8.RuneCountInString(text) >= textMaxLen {
 					r := []rune(text)
-					text = string(r[:textManLen]) + "..."
+					text = string(r[:textMaxLen]) + "..."
 				}
 				text = html.EscapeString(text)
 			}
