@@ -22,3 +22,18 @@ func (c *Ctx) DBOpenOrCreate(path string, optarg *CreateOptArg) (*Obj, error) {
 	}
 	return db, nil
 }
+
+func (c *Ctx) DBOpen(path string) (*Obj, error) {
+	cPath := C.CString(path)
+	defer C.free(unsafe.Pointer(cPath))
+	db := (*Obj)(unsafe.Pointer(
+		C.grn_db_open(
+			(*C.struct__grn_ctx)(unsafe.Pointer(c)),
+			cPath,
+		),
+	))
+	if db == nil {
+		return nil, NoSuchFileOrDirectoryError
+	}
+	return db, nil
+}
