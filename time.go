@@ -41,6 +41,6 @@ func (c *Ctx) SetTime(column *Obj, recordID ID, t time.Time) error {
 	var value Obj
 	TimeInit(&value, 0)
 	defer c.ObjUnlink(&value)
-	c.TimeSet(&value, text)
+	c.TimeSet(&value, t)
 	return c.ObjSetValue(column, recordID, &value, OBJ_SET)
 }
