@@ -32,3 +32,19 @@ func (c *Ctx) TextPut(bulk *Obj, str string) error {
 	}
 	return nil
 }
+
+func (c *Ctx) GetText(column *Obj, recordID ID) string {
+	var buf Obj
+	TextInit(&buf, 0)
+	defer c.ObjUnlink(&buf)
+	c.ObjGetValue(column, recordID, &buf)
+	return BulkHead(&buf)
+}
+
+func (c *Ctx) SetText(column *Obj, recordID ID, text string) error {
+	var value Obj
+	TextInit(&value, 0)
+	defer c.ObjUnlink(&value)
+	c.TextPut(&value, text)
+	return c.ObjSetValue(column, recordID, &value, OBJ_SET)
+}
