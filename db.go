@@ -1,4 +1,4 @@
-package cgoroonga
+package goroonga
 
 /*
 #cgo LDFLAGS: -lgroonga
@@ -7,33 +7,76 @@ package cgoroonga
 import "C"
 import "unsafe"
 
-func (c *Ctx) DBOpenOrCreate(path string, optarg *CreateOptArg) (*Obj, error) {
-	cPath := C.CString(path)
-	defer C.free(unsafe.Pointer(cPath))
-	db := (*Obj)(unsafe.Pointer(
-		C.go_grn_db_open_or_create(
-			(*C.struct__grn_ctx)(unsafe.Pointer(c)),
-			cPath,
-			(*C.struct__grn_db_create_optarg)(unsafe.Pointer(optarg)),
-		),
-	))
-	if db == nil {
-		return nil, DBCreateError
-	}
-	return db, nil
+type DB struct {
+	context *Context
+	cDB     *C.grn_obj
 }
 
-func (c *Ctx) DBOpen(path string) (*Obj, error) {
-	cPath := C.CString(path)
-	defer C.free(unsafe.Pointer(cPath))
-	db := (*Obj)(unsafe.Pointer(
-		C.grn_db_open(
-			(*C.struct__grn_ctx)(unsafe.Pointer(c)),
-			cPath,
-		),
-	))
-	if db == nil {
-		return nil, NoSuchFileOrDirectoryError
+func (d *DB) Path() string {
+	return objPath(d.context.cCtx, d.cDB)
+}
+
+func (d *DB) Close() error {
+	if d.cDB == nil {
+		return nil
 	}
-	return db, nil
+	err := closeObj(d.context.cCtx, d.cDB)
+	d.cDB = nil
+	return err
+}
+
+func (d *DB) Remove() error {
+	if d.cDB == nil {
+		return InvalidArgumentError
+	}
+	err := removeObj(d.context.cCtx, d.cDB)
+	d.cDB = nil
+	return err
+}
+
+func (d *DB) CreateTable(name, path string, flags, keyType int) (*Table, error) {
+	var cName *C.char
+	var cNameLen C.size_t
+	if name != "" {
+		cName = C.CString(name)
+		defer C.free(unsafe.Pointer(cName))
+		cNameLen = C.strlen(cName)
+	}
+
+	var cPath *C.char
+	if path != "" {
+		cPath = C.CString(path)
+		defer C.free(unsafe.Pointer(cPath))
+	}
+
+	cCtx := d.context.cCtx
+	keyTypeObj := C.grn_ctx_at(cCtx, C.grn_id(keyType))
+	if keyTypeObj == nil {
+		return nil, InvalidArgumentError
+	}
+	cTable := C.grn_table_create(cCtx, cName, C.uint(cNameLen),
+		cPath, C.grn_obj_flags(flags), keyTypeObj, nil)
+	if cTable == nil {
+		return nil, errorFromRc(cCtx.rc)
+	}
+	return &Table{db: d, cTable: cTable}, nil
+}
+
+func (d *DB) OpenTable(name string) (*Table, error) {
+	var cName *C.char
+	var cNameLen C.size_t
+	if name != "" {
+		cName = C.CString(name)
+		defer C.free(unsafe.Pointer(cName))
+		cNameLen = C.strlen(cName)
+	}
+	cCtx := d.context.cCtx
+	cTable := C.grn_ctx_get(cCtx, cName, C.int(cNameLen))
+	if cTable == nil {
+		if cCtx.rc != SUCCESS {
+			return nil, errorFromRc(cCtx.rc)
+		}
+		return nil, NotFoundError
+	}
+	return &Table{db: d, cTable: cTable}, nil
 }

@@ -1,4 +1,4 @@
-package cgoroonga
+package goroonga
 
 /*
 #cgo LDFLAGS: -lgroonga
@@ -7,47 +7,43 @@ package cgoroonga
 import "C"
 import "unsafe"
 
-func (c *Ctx) ColumnOpen(table *Obj, name string) (*Obj, error) {
-	cName := C.CString(name)
-	defer C.free(unsafe.Pointer(cName))
-
-	cNameLen := C.strlen(cName)
-	column := C.grn_obj_column(
-		(*C.struct__grn_ctx)(unsafe.Pointer(c)),
-		(*C.struct__grn_obj)(unsafe.Pointer(table)),
-		cName, C.uint(cNameLen))
-	if column == nil {
-		return nil, NoSuchFileOrDirectoryError
-	}
-	return (*Obj)(unsafe.Pointer(column)), nil
+type Column struct {
+	table   *Table
+	cColumn *C.grn_obj
 }
 
-func (c *Ctx) ColumnOpenOrCreate(table *Obj, name string, path string, flags ObjFlags, columnType *Obj) (*Obj, error) {
-	cName := C.CString(name)
-	defer C.free(unsafe.Pointer(cName))
-
-	cNameLen := C.strlen(cName)
-	column := C.grn_obj_column(
-		(*C.struct__grn_ctx)(unsafe.Pointer(c)),
-		(*C.struct__grn_obj)(unsafe.Pointer(table)),
-		cName, C.uint(cNameLen))
-	if column == nil {
-		var cPath *C.char
-		if path != "" {
-			cPath = C.CString(path)
-			defer C.free(unsafe.Pointer(cPath))
-		}
-
-		column = C.grn_column_create(
-			(*C.struct__grn_ctx)(unsafe.Pointer(c)),
-			(*C.struct__grn_obj)(unsafe.Pointer(table)),
-			cName, C.uint(cNameLen),
-			cPath,
-			C.grn_obj_flags(flags),
-			(*C.struct__grn_obj)(unsafe.Pointer(columnType)))
-		if column == nil {
-			return nil, ColumnCreateError
-		}
+func (c *Column) Name() string {
+	cCtx := c.table.db.context.cCtx
+	length := C.grn_column_name(cCtx, c.cColumn, nil, 0)
+	if length == 0 {
+		return ""
 	}
-	return (*Obj)(unsafe.Pointer(column)), nil
+
+	var buf *C.char
+	buf = (*C.char)(C.malloc(C.size_t(unsafe.Sizeof(*buf)) * C.size_t(length)))
+	defer C.free(unsafe.Pointer(buf))
+	C.grn_column_name(cCtx, c.cColumn, buf, length)
+	return C.GoString(buf)
+}
+
+func (c *Column) Path() string {
+	return objPath(c.table.db.context.cCtx, c.cColumn)
+}
+
+func (c *Column) Close() error {
+	if c.cColumn == nil {
+		return nil
+	}
+	err := closeObj(c.table.db.context.cCtx, c.cColumn)
+	c.cColumn = nil
+	return err
+}
+
+func (c *Column) Remove() error {
+	if c.cColumn == nil {
+		return InvalidArgumentError
+	}
+	err := removeObj(c.table.db.context.cCtx, c.cColumn)
+	c.cColumn = nil
+	return err
 }

@@ -1,4 +1,4 @@
-package cgoroonga
+package goroonga
 
 /*
 #cgo LDFLAGS: -lgroonga
@@ -7,90 +7,101 @@ package cgoroonga
 import "C"
 import "unsafe"
 
-func (c *Ctx) TableOpen(name string) (*Obj, error) {
-	cName := C.CString(name)
-	defer C.free(unsafe.Pointer(cName))
-
-	cNameLen := C.strlen(cName)
-	table := C.grn_ctx_get(
-		(*C.struct__grn_ctx)(unsafe.Pointer(c)), cName, C.int(cNameLen))
-	if table == nil {
-		return nil, NoSuchFileOrDirectoryError
-	}
-	return (*Obj)(unsafe.Pointer(table)), nil
+type Table struct {
+	db      *DB
+	cTable  *C.grn_obj
+	columns map[string]*Column
 }
 
-func (c *Ctx) TableOpenOrCreate(name string, path string, flags ObjFlags, keyType, valueType *Obj) (*Obj, error) {
-	cName := C.CString(name)
-	defer C.free(unsafe.Pointer(cName))
+func (t *Table) Path() string {
+	return objPath(t.db.context.cCtx, t.cTable)
+}
 
-	cNameLen := C.strlen(cName)
-	table := C.grn_ctx_get(
-		(*C.struct__grn_ctx)(unsafe.Pointer(c)), cName, C.int(cNameLen))
-	if table == nil {
-		var cPath *C.char
-		if path != "" {
-			cPath = C.CString(path)
-			defer C.free(unsafe.Pointer(cPath))
+func (t *Table) Name() string {
+	return objName(t.db.context.cCtx, t.cTable)
+}
+
+func (t *Table) Close() error {
+	for name, column := range t.columns {
+		err := column.Close()
+		if err != nil {
+			return err
 		}
+		delete(t.columns, name)
+	}
 
-		table = C.grn_table_create(
-			(*C.struct__grn_ctx)(unsafe.Pointer(c)),
-			cName, C.uint(cNameLen),
-			cPath,
-			C.grn_obj_flags(flags),
-			(*C.struct__grn_obj)(unsafe.Pointer(keyType)),
-			(*C.struct__grn_obj)(unsafe.Pointer(valueType)))
-		if table == nil {
-			return nil, TableCreateError
+	if t.cTable == nil {
+		return nil
+	}
+	err := closeObj(t.db.context.cCtx, t.cTable)
+	t.cTable = nil
+	return err
+}
+
+func (t *Table) Remove() error {
+	if t.cTable == nil {
+		return InvalidArgumentError
+	}
+	err := removeObj(t.db.context.cCtx, t.cTable)
+	t.cTable = nil
+	return err
+}
+
+func (t *Table) CreateColumn(name, path string, flags, columnType int) (*Column, error) {
+	var cName *C.char
+	var cNameLen C.size_t
+	if name != "" {
+		cName = C.CString(name)
+		defer C.free(unsafe.Pointer(cName))
+		cNameLen = C.strlen(cName)
+	}
+
+	var cPath *C.char
+	if path != "" {
+		cPath = C.CString(path)
+		defer C.free(unsafe.Pointer(cPath))
+	}
+
+	cCtx := t.db.context.cCtx
+	columnTypeObj := C.grn_ctx_at(cCtx, C.grn_id(columnType))
+	if columnTypeObj == nil {
+		return nil, InvalidArgumentError
+	}
+	cColumn := C.grn_column_create(cCtx, t.cTable, cName, C.uint(cNameLen),
+		cPath, C.grn_obj_flags(flags), columnTypeObj)
+	if cColumn == nil {
+		return nil, errorFromRc(cCtx.rc)
+	}
+	column := &Column{table: t, cColumn: cColumn}
+	t.addColumnToMap(name, column)
+	return column, nil
+}
+
+func (t *Table) OpenColumn(name string) (*Column, error) {
+	var cName *C.char
+	var cNameLen C.size_t
+	if name != "" {
+		cName = C.CString(name)
+		defer C.free(unsafe.Pointer(cName))
+		cNameLen = C.strlen(cName)
+	}
+
+	cCtx := t.db.context.cCtx
+	cColumn := C.grn_obj_column(cCtx, t.cTable, cName, C.uint(cNameLen))
+	if cColumn == nil {
+		if cCtx.rc != SUCCESS {
+			return nil, errorFromRc(cCtx.rc)
 		}
+		return nil, NotFoundError
 	}
-	return (*Obj)(unsafe.Pointer(table)), nil
+	column := &Column{table: t, cColumn: cColumn}
+	t.addColumnToMap(name, column)
+	return column, nil
 }
 
-func (c *Ctx) TableAdd(table *Obj, key string) (recordID ID, added bool, err error) {
-	var cKey *C.char
-	var cKeyLen C.size_t
-	if key != "" {
-		cKey = C.CString(key)
-		defer C.free(unsafe.Pointer(cKey))
-
-		cKeyLen = C.strlen(cKey)
+func (t *Table) addColumnToMap(name string, column *Column) {
+	if t.columns == nil {
+		t.columns = make(map[string]*Column)
 	}
-	var cAdded C.int
-	recordID = ID(C.grn_table_add(
-		(*C.struct__grn_ctx)(unsafe.Pointer(c)),
-		(*C.struct__grn_obj)(unsafe.Pointer(table)),
-		unsafe.Pointer(cKey),
-		C.uint(cKeyLen),
-		&cAdded))
-	if cAdded != 0 {
-		added = true
-	} else {
-		added = false
-	}
-	return
-}
-
-func (c *Ctx) TableSelect(table, expr, res *Obj, op Operator) (*Obj, error) {
-	result := C.grn_table_select(
-		(*C.struct__grn_ctx)(unsafe.Pointer(c)),
-		(*C.struct__grn_obj)(unsafe.Pointer(table)),
-		(*C.struct__grn_obj)(unsafe.Pointer(expr)),
-		(*C.struct__grn_obj)(unsafe.Pointer(res)),
-		C.grn_operator(op))
-	if result == nil {
-		return nil, errorFromRc(c.rc)
-	}
-	return (*Obj)(unsafe.Pointer(result)), nil
-}
-
-func (c *Ctx) TableSize(table *Obj) (uint, error) {
-	n := C.grn_table_size(
-		(*C.struct__grn_ctx)(unsafe.Pointer(c)),
-		(*C.struct__grn_obj)(unsafe.Pointer(table)))
-	if c.rc != SUCCESS {
-		return 0, errorFromRc(c.rc)
-	}
-	return uint(n), nil
+	t.columns[name] = column
 }

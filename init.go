@@ -1,4 +1,4 @@
-package cgoroonga
+package goroonga
 
 /*
 #cgo LDFLAGS: -lgroonga
@@ -14,17 +14,10 @@ func Init() error {
 	return nil
 }
 
-func Fin() error {
+func Terminate() error {
 	rc := C.grn_fin()
 	if rc != SUCCESS {
 		return errorFromRc(rc)
 	}
 	return nil
-}
-
-func FinDefer(err *error) {
-	err2 := Fin()
-	if err2 != nil && *err == nil {
-		*err = err2
-	}
 }

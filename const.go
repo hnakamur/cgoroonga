@@ -1,10 +1,4 @@
-package cgoroonga
-
-// ID values
-const (
-	ID_NIL = 0x00
-	ID_MAX = 0x3fffffff
-)
+package goroonga
 
 // builtin types
 const (
@@ -79,20 +73,6 @@ const (
 
 	OBJ_TEMPORARY  = 0x00 << 15
 	OBJ_PERSISTENT = 0x01 << 15
-)
-
-// ObjSetValue flags
-const (
-	OBJ_SET_MASK = 0x07
-	OBJ_SET      = 0x01
-	OBJ_INCR     = 0x02
-	OBJ_DECR     = 0x03
-	OBJ_APPEND   = 0x04
-	OBJ_PREPEND  = 0x05
-	OBJ_GET      = 0x01 << 4
-	OBJ_COMPARE  = 0x01 << 5
-	OBJ_LOCK     = 0x01 << 6
-	OBJ_UNLOCK   = 0x01 << 7
 )
 
 // error codes
@@ -175,120 +155,4 @@ const (
 	COMMAND_ERROR                       = -74
 	PLUGIN_ERROR                        = -75
 	SCORER_ERROR                        = -76
-)
-
-// Operator values
-const (
-	OP_PUSH = iota
-	OP_POP
-	OP_NOP
-	OP_CALL
-	OP_INTERN
-	OP_GET_REF
-	OP_GET_VALUE
-	OP_AND
-	OP_AND_NOT
-	OP_OR
-	OP_ASSIGN
-	OP_STAR_ASSIGN
-	OP_SLASH_ASSIGN
-	OP_MOD_ASSIGN
-	OP_PLUS_ASSIGN
-	OP_MINUS_ASSIGN
-	OP_SHIFTL_ASSIGN
-	OP_SHIFTR_ASSIGN
-	OP_SHIFTRR_ASSIGN
-	OP_AND_ASSIGN
-	OP_XOR_ASSIGN
-	OP_OR_ASSIGN
-	OP_JUMP
-	OP_CJUMP
-	OP_COMMA
-	OP_BITWISE_OR
-	OP_BITWISE_XOR
-	OP_BITWISE_AND
-	OP_BITWISE_NOT
-	OP_EQUAL
-	OP_NOT_EQUAL
-	OP_LESS
-	OP_GREATER
-	OP_LESS_EQUAL
-	OP_GREATER_EQUAL
-	OP_IN
-	OP_MATCH
-	OP_NEAR
-	OP_NEAR2
-	OP_SIMILAR
-	OP_TERM_EXTRACT
-	OP_SHIFTL
-	OP_SHIFTR
-	OP_SHIFTRR
-	OP_PLUS
-	OP_MINUS
-	OP_STAR
-	OP_SLASH
-	OP_MOD
-	OP_DELETE
-	OP_INCR
-	OP_DECR
-	OP_INCR_POST
-	OP_DECR_POST
-	OP_NOT
-	OP_ADJUST
-	OP_EXACT
-	OP_LCP
-	OP_PARTIAL
-	OP_UNSPLIT
-	OP_PREFIX
-	OP_SUFFIX
-	OP_GEO_DISTANCE1
-	OP_GEO_DISTANCE2
-	OP_GEO_DISTANCE3
-	OP_GEO_DISTANCE4
-	OP_GEO_WITHINP5
-	OP_GEO_WITHINP6
-	OP_GEO_WITHINP8
-	OP_OBJ_SEARCH
-	OP_EXPR_GET_VAR
-	OP_TABLE_CREATE
-	OP_TABLE_SELECT
-	OP_TABLE_SORT
-	OP_TABLE_GROUP
-	OP_JSON_PUT
-	OP_GET_MEMBER
-	OP_REGEXP
-)
-
-// ExprFlags values
-const (
-	EXPR_SYNTAX_QUERY          = 0x00
-	EXPR_SYNTAX_SCRIPT         = 0x01
-	EXPR_SYNTAX_OUTPUT_COLUMNS = 0x20
-	EXPR_SYNTAX_ADJUSTER       = 0x40
-	EXPR_ALLOW_PRAGMA          = 0x02
-	EXPR_ALLOW_COLUMN          = 0x04
-	EXPR_ALLOW_UPDATE          = 0x08
-	EXPR_ALLOW_LEADING_NOT     = 0x10
-)
-
-// TableCursorOpen flags
-const (
-	CURSOR_ASCENDING   = 0x00 << 0
-	CURSOR_DESCENDING  = 0x01 << 0
-	CURSOR_GE          = 0x00 << 1
-	CURSOR_GT          = 0x01 << 1
-	CURSOR_LE          = 0x00 << 2
-	CURSOR_LT          = 0x01 << 2
-	CURSOR_BY_KEY      = 0x00 << 3
-	CURSOR_BY_ID       = 0x01 << 3
-	CURSOR_PREFIX      = 0x01 << 4
-	CURSOR_SIZE_BY_BIT = 0x01 << 5
-	CURSOR_RK          = 0x01 << 6
-)
-
-// flags for ExprSnippet
-const (
-	SNIP_NORMALIZE           = 0x01 << 0
-	SNIP_COPY_TAG            = 0x01 << 1
-	SNIP_SKIP_LEADING_SPACES = 0x01 << 2
 )
