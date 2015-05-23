@@ -175,10 +175,7 @@ func TestOpenColumnAndClose(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to create a column with error: %s", err)
 	}
-	err = column.Close()
-	if err != nil {
-		t.Errorf("failed to close the column with error: %s", err)
-	}
+	column.Close()
 
 	column, err = table.OpenColumn("column1")
 	if err != nil {

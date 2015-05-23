@@ -101,10 +101,7 @@ func TestOpenTableAndClose(t *testing.T) {
 		t.Errorf("failed to create a table with error: %s", err)
 	}
 
-	err = table.Close()
-	if err != nil {
-		t.Errorf("failed to close the table with error: %s", err)
-	}
+	table.Close()
 
 	table, err = db.OpenTable("Table1")
 	if err != nil {

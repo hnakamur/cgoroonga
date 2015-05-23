@@ -7,12 +7,8 @@ package cgoroonga
 import "C"
 import "unsafe"
 
-func closeObj(ctx *C.grn_ctx, obj *C.grn_obj) error {
-	rc := C.grn_obj_close(ctx, obj)
-	if rc != SUCCESS {
-		return errorFromRc(rc)
-	}
-	return nil
+func unlinkObj(ctx *C.grn_ctx, obj *C.grn_obj) {
+	C.grn_obj_unlink(ctx, obj)
 }
 
 func removeObj(ctx *C.grn_ctx, obj *C.grn_obj) error {

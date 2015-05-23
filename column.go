@@ -30,13 +30,12 @@ func (c *Column) Path() string {
 	return objPath(c.table.db.context.cCtx, c.cColumn)
 }
 
-func (c *Column) Close() error {
+func (c *Column) Close() {
 	if c.cColumn == nil {
-		return nil
+		return
 	}
-	err := closeObj(c.table.db.context.cCtx, c.cColumn)
+	unlinkObj(c.table.db.context.cCtx, c.cColumn)
 	c.cColumn = nil
-	return err
 }
 
 func (c *Column) Remove() error {

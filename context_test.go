@@ -100,10 +100,7 @@ func TestOpenDBAndClose(t *testing.T) {
 		t.Errorf("failed to create a database with error: %s", err)
 	}
 
-	err = db.Close()
-	if err != nil {
-		t.Errorf("failed to close the database with error: %s", err)
-	}
+	db.Close()
 
 	db, err = ctx.OpenDB(path)
 	if err != nil {

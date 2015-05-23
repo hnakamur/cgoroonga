@@ -21,10 +21,7 @@ func NewContext() (*Context, error) {
 }
 
 func (c *Context) Close() error {
-	err := c.setCurrentDB(nil)
-	if err != nil {
-		return err
-	}
+	c.setCurrentDB(nil)
 
 	if c.cCtx == nil {
 		return nil
@@ -46,10 +43,7 @@ func (c *Context) CreateDB(path string) (*DB, error) {
 	}
 
 	db := &DB{context: c, cDB: cDB}
-	err := c.setCurrentDB(db)
-	if err != nil {
-		return nil, err
-	}
+	c.setCurrentDB(db)
 	return db, nil
 }
 
@@ -62,10 +56,7 @@ func (c *Context) OpenDB(path string) (*DB, error) {
 	}
 
 	db := &DB{context: c, cDB: cDB}
-	err := c.setCurrentDB(db)
-	if err != nil {
-		return nil, err
-	}
+	c.setCurrentDB(db)
 	return db, nil
 }
 
@@ -83,16 +74,13 @@ func (c *Context) UseDB(db *DB) error {
 		return errorFromRc(rc)
 	}
 
-	return c.setCurrentDB(db)
+	c.setCurrentDB(db)
+	return nil
 }
 
-func (c *Context) setCurrentDB(db *DB) error {
+func (c *Context) setCurrentDB(db *DB) {
 	if c.currentDB != nil {
-		err := c.currentDB.Close()
-		if err != nil {
-			return err
-		}
+		c.currentDB.Close()
 	}
 	c.currentDB = db
-	return nil
 }

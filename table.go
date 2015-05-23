@@ -21,21 +21,17 @@ func (t *Table) Name() string {
 	return objName(t.db.context.cCtx, t.cTable)
 }
 
-func (t *Table) Close() error {
+func (t *Table) Close() {
 	for name, column := range t.columns {
-		err := column.Close()
-		if err != nil {
-			return err
-		}
+		column.Close()
 		delete(t.columns, name)
 	}
 
 	if t.cTable == nil {
-		return nil
+		return
 	}
-	err := closeObj(t.db.context.cCtx, t.cTable)
+	unlinkObj(t.db.context.cCtx, t.cTable)
 	t.cTable = nil
-	return err
 }
 
 func (t *Table) Remove() error {

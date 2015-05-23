@@ -16,13 +16,12 @@ func (d *DB) Path() string {
 	return objPath(d.context.cCtx, d.cDB)
 }
 
-func (d *DB) Close() error {
+func (d *DB) Close() {
 	if d.cDB == nil {
-		return nil
+		return
 	}
-	err := closeObj(d.context.cCtx, d.cDB)
+	unlinkObj(d.context.cCtx, d.cDB)
 	d.cDB = nil
-	return err
 }
 
 func (d *DB) Remove() error {
