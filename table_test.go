@@ -1,4 +1,4 @@
-package goroonga
+package cgoroonga
 
 import (
 	"io/ioutil"
