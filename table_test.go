@@ -240,6 +240,14 @@ func addTable1Record(t *Table, record table1) error {
 	return recordID.SetTime(t.Column("updated_at"), record.updatedAt)
 }
 
+func getTable1Record(t *Table, recordID ID) table1 {
+	return table1{
+		key:       t.GetKey(recordID),
+		content:   recordID.GetString(t.Column("content")),
+		updatedAt: recordID.GetTime(t.Column("updated_at")),
+	}
+}
+
 func mustParseRFC3339Time(value string) time.Time {
 	t, err := time.Parse(time.RFC3339, value)
 	if err != nil {

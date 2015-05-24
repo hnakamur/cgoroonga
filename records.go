@@ -13,6 +13,22 @@ type Records struct {
 	columns  map[string]*Column
 }
 
+func (r *Records) GetKey(id ID) string {
+	cCtx := r.db.context.cCtx
+	cRecords := r.cRecords
+	cID := C.grn_id(id)
+	length := C.grn_table_get_key(cCtx, cRecords, cID, nil, 0)
+	if length == 0 {
+		return ""
+	}
+
+	var buf *C.char
+	buf = (*C.char)(C.malloc(C.size_t(unsafe.Sizeof(*buf)) * C.size_t(length)))
+	defer C.free(unsafe.Pointer(buf))
+	C.grn_table_get_key(cCtx, cRecords, cID, unsafe.Pointer(buf), length)
+	return C.GoString(buf)
+}
+
 func (r *Records) Column(name string) *Column {
 	if r.columns == nil {
 		return nil
@@ -121,4 +137,31 @@ func (r *Records) Select(expr *Expr, records *Records, op int) (*Records, error)
 		return nil, errorFromRc(cCtx.rc)
 	}
 	return &Records{db: r.db, cRecords: cRecords}, nil
+}
+
+func (r *Records) OpenTableCursor(min, max string, offset, limit, flags int) (*TableCursor, error) {
+	var cMin, cMax *C.char
+	var cMinLen, cMaxLen C.size_t
+	if min != "" {
+		cMin = C.CString(min)
+		defer C.free(unsafe.Pointer(cMin))
+		cMinLen = C.strlen(cMin)
+	}
+	if max != "" {
+		cMax = C.CString(max)
+		defer C.free(unsafe.Pointer(cMax))
+		cMaxLen = C.strlen(cMax)
+	}
+
+	cCtx := r.db.context.cCtx
+	cCursor := C.grn_table_cursor_open(
+		cCtx,
+		r.cRecords,
+		unsafe.Pointer(cMin), C.uint(cMinLen),
+		unsafe.Pointer(cMax), C.uint(cMaxLen),
+		C.int(offset), C.int(limit), C.int(flags))
+	if cCursor == nil {
+		return nil, errorFromRc(cCtx.rc)
+	}
+	return &TableCursor{records: r, cCursor: cCursor}, nil
 }
