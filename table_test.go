@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestCreateColumnAndRemove(t *testing.T) {
@@ -218,5 +219,92 @@ func TestOpenNonExistingColumn(t *testing.T) {
 	_, err = table.OpenColumn("column1")
 	if err != NotFoundError {
 		t.Errorf("unexpected err from OpenColumn, want %s, got %s.", NotFoundError, err)
+	}
+}
+
+type table1 struct {
+	key       string
+	content   string
+	updatedAt time.Time
+}
+
+func addTable1Record(t *Table, record table1) error {
+	recordID, _, err := t.AddRecord(record.key)
+	if err != nil {
+		return err
+	}
+	err = recordID.SetString(t.Column("content"), record.content)
+	if err != nil {
+		return err
+	}
+	return recordID.SetTime(t.Column("updated_at"), record.updatedAt)
+}
+
+func mustParseRFC3339Time(value string) time.Time {
+	t, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		panic(err)
+	}
+	return t
+}
+
+func TestSelect(t *testing.T) {
+	tempDir, ctx, db := setupTestDB(t, "goroonga-TestSelect-")
+	defer tearDownTestDB(t, tempDir, ctx, db)
+
+	table, err := db.CreateTable("Table1", "",
+		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, DB_SHORT_TEXT)
+	if err != nil {
+		t.Errorf("failed to create a table with error: %s", err)
+	}
+
+	_, err = table.CreateColumn("content", "",
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TEXT)
+	if err != nil {
+		t.Errorf("failed to create a column with error: %s", err)
+	}
+
+	_, err = table.CreateColumn("updated_at", "",
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TIME)
+	if err != nil {
+		t.Errorf("failed to create a column with error: %s", err)
+	}
+
+	err = addTable1Record(table, table1{
+		key: "key1", content: "content1",
+		updatedAt: mustParseRFC3339Time("2015-05-24T12:34:56+09:00"),
+	})
+	if err != nil {
+		t.Errorf("failed to add a record with error: %s", err)
+	}
+	err = addTable1Record(table, table1{
+		key: "key2", content: "content2",
+		updatedAt: mustParseRFC3339Time("2015-05-23T10:30:50+09:00"),
+	})
+	if err != nil {
+		t.Errorf("failed to add a record with error: %s", err)
+	}
+
+	expr, err := table.CreateQuery("")
+	if err != nil {
+		t.Errorf("failed to create an expression with error: %s", err)
+	}
+	err = expr.Parse("_key:@key1", nil, OP_MATCH, OP_AND,
+		EXPR_SYNTAX_QUERY|EXPR_ALLOW_PRAGMA|EXPR_ALLOW_COLUMN)
+	if err != nil {
+		t.Errorf("failed to parse the expression with error: %s", err)
+	}
+
+	records, err := table.Select(expr, nil, OP_OR)
+	if err != nil {
+		t.Errorf("failed to select the table with error: %s", err)
+	}
+
+	count, err := records.RecordCount()
+	if err != nil {
+		t.Errorf("failed to get a record count: %s", err)
+	}
+	if count != 1 {
+		t.Errorf("record count mismatch: want %s, got %s", 1, count)
 	}
 }

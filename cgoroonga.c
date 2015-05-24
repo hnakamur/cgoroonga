@@ -19,6 +19,11 @@ GRN_API long long int cgoroonga_int64_value(grn_obj *obj) {
 }
 
 
+GRN_API void cgoroonga_record_init(grn_obj *obj, unsigned char impl_flags, grn_id domain) {
+	GRN_RECORD_INIT(obj, impl_flags, domain);
+}
+
+
 GRN_API void cgoroonga_text_init(grn_obj *obj, unsigned char impl_flags) {
 	GRN_TEXT_INIT(obj, impl_flags);
 }

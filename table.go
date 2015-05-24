@@ -13,6 +13,15 @@ type Table struct {
 	columns map[string]*Column
 }
 
+/*
+func (t *Table) Column(name string) *Column {
+	if t.columns == nil {
+		return nil
+	}
+	return t.columns[name]
+}
+*/
+
 func (t *Table) Path() string {
 	return objPath(t.db.context.cCtx, t.cTable)
 }
@@ -132,4 +141,37 @@ func (t *Table) AddRecord(key string) (recordID ID, added bool, err error) {
 		added = false
 	}
 	return
+}
+
+func (t *Table) CreateQuery(name string) (*Expr, error) {
+	expr, err := t.db.context.CreateExpr(name)
+	if err != nil {
+		return nil, err
+	}
+
+	cCtx := t.db.context.cCtx
+	cVar, err := expr.addVar("")
+	if err != nil {
+		return nil, err
+	}
+	C.cgoroonga_record_init(cVar, 0, C.grn_obj_id(cCtx, t.cTable))
+	return expr, nil
+}
+
+func (t *Table) Select(expr *Expr, res *Records, op int) (*Records, error) {
+	cCtx := t.db.context.cCtx
+
+	var cExpr *C.grn_obj
+	if expr != nil {
+		cExpr = expr.cExpr
+	}
+	var cRes *C.grn_obj
+	if res != nil {
+		cRes = res.cTable
+	}
+	cRes = C.grn_table_select(cCtx, t.cTable, cExpr, cRes, C.grn_operator(op))
+	if cCtx.rc != SUCCESS {
+		return nil, errorFromRc(cCtx.rc)
+	}
+	return &Records{&Table{db: t.db, cTable: cRes}}, nil
 }

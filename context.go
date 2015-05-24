@@ -84,3 +84,19 @@ func (c *Context) setCurrentDB(db *DB) {
 	}
 	c.currentDB = db
 }
+
+func (c *Context) CreateExpr(name string) (*Expr, error) {
+	var cName *C.char
+	var cNameLen C.size_t
+	if name != "" {
+		cName = C.CString(name)
+		defer C.free(unsafe.Pointer(cName))
+		cNameLen = C.strlen(cName)
+	}
+
+	cExpr := C.grn_expr_create(c.cCtx, cName, C.uint(cNameLen))
+	if cExpr == nil {
+		return nil, errorFromRc(c.cCtx.rc)
+	}
+	return &Expr{context: c, cExpr: cExpr}, nil
+}
