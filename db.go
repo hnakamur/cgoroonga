@@ -58,7 +58,7 @@ func (d *DB) CreateTable(name, path string, flags, keyType int) (*Table, error) 
 	if cTable == nil {
 		return nil, errorFromRc(cCtx.rc)
 	}
-	return &Table{db: d, cTable: cTable}, nil
+	return &Table{&Records{db: d, cRecords: cTable}}, nil
 }
 
 func (d *DB) OpenTable(name string) (*Table, error) {
@@ -77,5 +77,5 @@ func (d *DB) OpenTable(name string) (*Table, error) {
 		}
 		return nil, NotFoundError
 	}
-	return &Table{db: d, cTable: cTable}, nil
+	return &Table{&Records{db: d, cRecords: cTable}}, nil
 }

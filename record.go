@@ -10,10 +10,6 @@ import (
 	"unsafe"
 )
 
-type Records struct {
-	*Table
-}
-
 type ID int
 
 func (id ID) SetString(column *Column, str string) error {
