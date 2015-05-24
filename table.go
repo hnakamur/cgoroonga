@@ -101,3 +101,26 @@ func (t *Table) addColumnToMap(name string, column *Column) {
 	}
 	t.columns[name] = column
 }
+
+func (t *Table) AddRecord(key string) (recordID ID, added bool, err error) {
+	var cKey *C.char
+	var cKeyLen C.size_t
+	if key != "" {
+		cKey = C.CString(key)
+		defer C.free(unsafe.Pointer(cKey))
+		cKeyLen = C.strlen(cKey)
+	}
+	var cAdded C.int
+	recordID = ID(C.grn_table_add(
+		t.db.context.cCtx,
+		t.cTable,
+		unsafe.Pointer(cKey),
+		C.uint(cKeyLen),
+		&cAdded))
+	if cAdded != 0 {
+		added = true
+	} else {
+		added = false
+	}
+	return
+}
