@@ -10,21 +10,8 @@ func (t *Table) OpenCursor(min, max string, offset uint64, limit int64, flags in
 	return nil, nil
 }
 
-func (t *Table) AddRecord(key string) (RecordID, error) {
-	return 0, nil
-}
-
 func (t *Table) RecordCount() (uint64, error) {
 	return 0, nil
-}
-
-type Column struct {
-	table *Table
-	Name  string
-}
-
-func (c *Column) Close() error {
-	return nil
 }
 
 type Query struct {

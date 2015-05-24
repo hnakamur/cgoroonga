@@ -43,6 +43,15 @@ func (t *Table) Remove() error {
 	return err
 }
 
+func (t *Table) RecordCount() (uint, error) {
+	cCtx := t.db.context.cCtx
+	count := C.grn_table_size(cCtx, t.cTable)
+	if cCtx.rc != SUCCESS {
+		return 0, errorFromRc(cCtx.rc)
+	}
+	return uint(count), nil
+}
+
 func (t *Table) CreateColumn(name, path string, flags, columnType int) (*Column, error) {
 	var cName *C.char
 	var cNameLen C.size_t
