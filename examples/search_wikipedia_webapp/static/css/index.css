@@ -1,0 +1,19 @@
+body {
+  padding: 0 16px;
+}
+
+label.timespan {
+  margin-left: 20px;
+}
+
+.results {
+  margin-top: 1em;
+}
+
+.result {
+  margin: 1em 0;
+}
+
+.title {
+  font-size: 1.4em;
+}
