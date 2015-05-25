@@ -265,3 +265,10 @@ const (
 	CURSOR_SIZE_BY_BIT = 0x01 << 5
 	CURSOR_RK          = 0x01 << 6
 )
+
+// flags for ExprSnippet
+const (
+	SNIP_NORMALIZE           = 0x01 << 0
+	SNIP_COPY_TAG            = 0x01 << 1
+	SNIP_SKIP_LEADING_SPACES = 0x01 << 2
+)

@@ -5,11 +5,18 @@
 #include <string.h>
 #include <groonga/groonga.h>
 
+GRN_API void cgoroonga_str_array_set(char **array, int i, char *elem);
+GRN_API char *cgoroonga_str_array_get(char **array, int i);
+GRN_API void cgoroonga_uint_array_set(unsigned int *array, int i, unsigned int elem);
+GRN_API unsigned int cgoroonga_uint_array_get(unsigned int *array, int i);
+
 GRN_API char *cgoroonga_bulk_head(grn_obj *bulk);
 GRN_API void cgoroonga_bulk_rewind(grn_obj *bulk);
 GRN_API int cgoroonga_bulk_vsize(grn_obj *bulk);
 
 GRN_API long long int cgoroonga_int64_value(grn_obj *obj);
+
+GRN_API grn_snip_mapping *cgoroonga_mapping_html_escape();
 
 GRN_API void cgoroonga_record_init(grn_obj *obj, unsigned char impl_flags, grn_id domain);
 

@@ -77,6 +77,7 @@ func TestOpenTableCursor(t *testing.T) {
 		}
 	}()
 
+	want := wants[0]
 	i := 0
 	for {
 		id, hasNext := cursor.Next()
@@ -84,7 +85,6 @@ func TestOpenTableCursor(t *testing.T) {
 			break
 		}
 
-		want := wants[i]
 		got := getTable1Record(table, id)
 		if got.key != want.key {
 			t.Errorf("key mismatch for i=%s, got: %s; want: %s", want.key, got.key)
@@ -97,5 +97,8 @@ func TestOpenTableCursor(t *testing.T) {
 		}
 
 		i++
+	}
+	if i != 1 {
+		t.Errorf("unsupposed matched count, got: %s; want: %s", i, 1)
 	}
 }

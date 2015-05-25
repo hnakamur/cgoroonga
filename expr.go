@@ -83,3 +83,40 @@ func (e *Expr) AppendOp(op, nargs int) error {
 	}
 	return nil
 }
+
+func (e *Expr) Snippet(flags, width, maxResults int, htmlEscape bool, tagPairs [][]string) *Snippet {
+	var cTag *C.char
+	var cTagLen C.uint
+	n := len(tagPairs)
+	openTags := (**C.char)(C.malloc(C.size_t(unsafe.Sizeof(cTag)) * C.size_t(n)))
+	defer C.free(unsafe.Pointer(openTags))
+	openTagLens := (*C.uint)(C.malloc(C.size_t(unsafe.Sizeof(cTagLen)) * C.size_t(n)))
+	defer C.free(unsafe.Pointer(openTagLens))
+	closeTags := (**C.char)(C.malloc(C.size_t(unsafe.Sizeof(cTag)) * C.size_t(n)))
+	defer C.free(unsafe.Pointer(closeTags))
+	closeTagLens := (*C.uint)(C.malloc(C.size_t(unsafe.Sizeof(cTagLen)) * C.size_t(n)))
+	defer C.free(unsafe.Pointer(closeTagLens))
+	for i := 0; i < n; i++ {
+		tagPair := tagPairs[i]
+		openTag := C.CString(tagPair[0])
+		closeTag := C.CString(tagPair[1])
+		C.cgoroonga_str_array_set(openTags, C.int(i), openTag)
+		C.cgoroonga_uint_array_set(openTagLens, C.int(i), C.uint(C.strlen(openTag)))
+		C.cgoroonga_str_array_set(closeTags, C.int(i), closeTag)
+		C.cgoroonga_uint_array_set(closeTagLens, C.int(i), C.uint(C.strlen(closeTag)))
+	}
+	defer func() {
+		for i := 0; i < n; i++ {
+			C.free(unsafe.Pointer(C.cgoroonga_str_array_get(openTags, C.int(i))))
+			C.free(unsafe.Pointer(C.cgoroonga_str_array_get(closeTags, C.int(i))))
+		}
+	}()
+	var mapping *C.grn_snip_mapping
+	if htmlEscape {
+		mapping = C.cgoroonga_mapping_html_escape()
+	}
+	cSnip := C.grn_expr_snip(e.context.cCtx, e.cExpr, C.int(flags),
+		C.uint(width), C.uint(maxResults), C.uint(n),
+		openTags, openTagLens, closeTags, closeTagLens, mapping)
+	return &Snippet{context: e.context, cSnip: cSnip}
+}
