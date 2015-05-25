@@ -60,6 +60,17 @@ func (c *Context) OpenDB(path string) (*DB, error) {
 	return db, nil
 }
 
+func (c *Context) OpenOrCreateDB(path string) (*DB, error) {
+	db, err := c.OpenDB(path)
+	if err != nil {
+		if err != NoSuchFileOrDirectoryError {
+			return nil, err
+		}
+		db, err = c.CreateDB(path)
+	}
+	return db, err
+}
+
 func (c *Context) CurrentDB() *DB {
 	return c.currentDB
 }
