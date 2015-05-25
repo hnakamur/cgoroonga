@@ -41,28 +41,6 @@ func (t *Table) CreateColumn(name, path string, flags, columnType int) (*Column,
 	return column, nil
 }
 
-func (t *Table) OpenColumn(name string) (*Column, error) {
-	var cName *C.char
-	var cNameLen C.size_t
-	if name != "" {
-		cName = C.CString(name)
-		defer C.free(unsafe.Pointer(cName))
-		cNameLen = C.strlen(cName)
-	}
-
-	cCtx := t.db.context.cCtx
-	cColumn := C.grn_obj_column(cCtx, t.cRecords, cName, C.uint(cNameLen))
-	if cColumn == nil {
-		if cCtx.rc != SUCCESS {
-			return nil, errorFromRc(cCtx.rc)
-		}
-		return nil, NotFoundError
-	}
-	column := &Column{table: t, cColumn: cColumn}
-	t.addColumnToMap(name, column)
-	return column, nil
-}
-
 func (t *Table) OpenOrCreateColumn(name, path string, flags, columnType int) (*Column, error) {
 	column, err := t.OpenColumn(name)
 	if err != nil {

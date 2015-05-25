@@ -188,19 +188,19 @@ func getIndex(c *gin.Context) {
 			viewablePages = append(viewablePages, i)
 		}
 
-		keyColumn, err := table.OpenColumn("_key")
+		keyColumn, err := res.OpenColumn("_key")
 		if err != nil {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
 
-		textColumn, err := table.OpenColumn("text")
+		textColumn, err := res.OpenColumn("text")
 		if err != nil {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
 
-		updatedAtColumn, err := table.OpenColumn("updated_at")
+		updatedAtColumn, err := res.OpenColumn("updated_at")
 		if err != nil {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
@@ -211,7 +211,7 @@ func getIndex(c *gin.Context) {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
-		defer res.Close()
+		defer tc.Close()
 
 		flags := grn.SNIP_COPY_TAG | grn.SNIP_SKIP_LEADING_SPACES
 		textMaxLen := 200
