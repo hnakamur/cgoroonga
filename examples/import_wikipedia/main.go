@@ -18,16 +18,13 @@ type Page struct {
 	Text      string `xml:"revision>text"`
 }
 
-func addArticle(ctx *grn.Ctx, table, textColumn, updatedAtColumn *grn.Obj, title, text, timestamp string) error {
-	recordID, _, err := ctx.TableAdd(table, title)
+func addArticle(table *grn.Table, title, text, timestamp string) error {
+	recordID, _, err := table.AddRecord(title)
 	if err != nil {
 		return err
 	}
 
-	var textValue grn.Obj
-	grn.TextInit(&textValue, 0)
-	ctx.TextPut(&textValue, text)
-	err = ctx.ObjSetValue(textColumn, recordID, &textValue, grn.OBJ_SET)
+	err = recordID.SetString(table.Column("text"), text)
 	if err != nil {
 		return err
 	}
@@ -36,67 +33,52 @@ func addArticle(ctx *grn.Ctx, table, textColumn, updatedAtColumn *grn.Obj, title
 	if err != nil {
 		return err
 	}
-	var updatedAtValue grn.Obj
-	grn.TimeInit(&updatedAtValue, 0)
-	ctx.TimeSet(&updatedAtValue, updatedAt)
-	return ctx.ObjSetValue(updatedAtColumn, recordID, &updatedAtValue, grn.OBJ_SET)
+	return recordID.SetTime(table.Column("updated_at"), updatedAt)
 }
 
-func closeFileDefer(err *error, f *os.File) {
-	err2 := f.Close()
-	if err2 != nil && *err == nil {
-		*err = err2
-	}
-}
-
-func run(dbFilename, wikiArticlesXmlBzip2Filename string) (err error) {
-	err = grn.Init()
+func run(dbFilename, wikiArticlesXmlBzip2Filename string) error {
+	err := grn.Init()
 	if err != nil {
-		return
+		return err
 	}
-	defer grn.FinDefer(&err)
+	defer grn.Terminate()
 
-	ctx, err := grn.CtxOpen(0)
+	ctx, err := grn.NewContext()
 	if err != nil {
-		return
+		return err
 	}
-	defer ctx.CloseDefer(&err)
+	defer ctx.Close()
 
-	var db *grn.Obj
-	db, err = ctx.DBOpenOrCreate(dbFilename, nil)
+	db, err := ctx.OpenOrCreateDB(dbFilename)
 	if err != nil {
-		return
+		return err
 	}
-	defer ctx.ObjUnlinkDefer(&err, db)
+	defer db.Close()
 
-	keyType := ctx.At(grn.DB_SHORT_TEXT)
-	table, err := ctx.TableOpenOrCreate("Articles", "",
-		grn.OBJ_TABLE_HASH_KEY|grn.OBJ_PERSISTENT, keyType, nil)
+	table, err := db.OpenOrCreateTable("Articles", "",
+		grn.OBJ_TABLE_HASH_KEY|grn.OBJ_PERSISTENT, grn.DB_SHORT_TEXT)
 	if err != nil {
-		return
+		return err
 	}
-	defer ctx.ObjUnlinkDefer(&err, table)
 
-	textColumn, err := ctx.ColumnOpenOrCreate(table, "text", "",
-		grn.OBJ_PERSISTENT|grn.OBJ_COLUMN_SCALAR, ctx.At(grn.DB_TEXT))
+	_, err = table.OpenOrCreateColumn("text", "",
+		grn.OBJ_PERSISTENT|grn.OBJ_COLUMN_SCALAR, grn.DB_TEXT)
 	if err != nil {
-		return
+		return err
 	}
-	defer ctx.ObjUnlinkDefer(&err, textColumn)
 
-	updatedAtColumn, err := ctx.ColumnOpenOrCreate(table, "updated_at", "",
-		grn.OBJ_PERSISTENT|grn.OBJ_COLUMN_SCALAR, ctx.At(grn.DB_TIME))
+	_, err = table.OpenOrCreateColumn("updated_at", "",
+		grn.OBJ_PERSISTENT|grn.OBJ_COLUMN_SCALAR, grn.DB_TIME)
 	if err != nil {
-		return
+		return err
 	}
-	defer ctx.ObjUnlinkDefer(&err, updatedAtColumn)
 
 	var file *os.File
 	file, err = os.Open(wikiArticlesXmlBzip2Filename)
 	if err != nil {
-		return
+		return err
 	}
-	defer closeFileDefer(&err, file)
+	defer file.Close()
 
 	decoder := xml.NewDecoder(bzip2.NewReader(file))
 	for {
@@ -106,7 +88,7 @@ func run(dbFilename, wikiArticlesXmlBzip2Filename string) (err error) {
 			if err == io.EOF {
 				err = nil
 			}
-			return
+			return err
 		}
 
 		if se, ok := t.(xml.StartElement); ok {
@@ -114,15 +96,14 @@ func run(dbFilename, wikiArticlesXmlBzip2Filename string) (err error) {
 				var p Page
 				decoder.DecodeElement(&p, &se)
 
-				err = addArticle(ctx, table, textColumn, updatedAtColumn,
-					p.Title, p.Text, p.Timestamp)
+				err = addArticle(table, p.Title, p.Text, p.Timestamp)
 				if err != nil {
-					return
+					return err
 				}
 			}
 		}
 	}
-	return
+	return nil
 }
 
 var dbFilenameVar string

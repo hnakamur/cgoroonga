@@ -1,26 +1,32 @@
 package main
 
 import (
-	"bufio"
-	"encoding/json"
 	"flag"
 	"fmt"
+	"html"
 	"net/http"
-	"path/filepath"
+	"net/url"
 	"strconv"
 	"time"
+	"unicode/utf8"
+
+	"github.com/gin-gonic/gin"
+	"gopkg.in/flosch/pongo2.v3"
 
 	grn "github.com/hnakamur/cgoroonga"
 )
 
-func staticFileHandler(path string) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, filepath.Join(htmlDir, path))
-	}
+var db *grn.DB
+var dbFilename string
+var listenAddress string
+
+func init() {
+	flag.StringVar(&dbFilename, "d", "wikipedia_ja.db", "database filename")
+	flag.StringVar(&listenAddress, "l", ":8080", "listen address (address:port)")
 }
 
-func formIntValue(r *http.Request, key string, defaultValue int) (int, error) {
-	strValue := r.FormValue(key)
+func formIntValue(c *gin.Context, key string, defaultValue int) (int, error) {
+	strValue := c.Request.FormValue(key)
 	intValue := defaultValue
 	if strValue != "" {
 		var err error
@@ -34,8 +40,8 @@ func formIntValue(r *http.Request, key string, defaultValue int) (int, error) {
 	return intValue, nil
 }
 
-func formDateValue(r *http.Request, key string, defaultValue time.Time) (time.Time, error) {
-	strValue := r.FormValue(key)
+func formDateValue(c *gin.Context, key string, defaultValue time.Time) (time.Time, error) {
+	strValue := c.Request.FormValue(key)
 	timeValue := defaultValue
 	if strValue != "" {
 		var err error
@@ -49,192 +55,227 @@ func formDateValue(r *http.Request, key string, defaultValue time.Time) (time.Ti
 	return timeValue, nil
 }
 
-func searchHandler(w http.ResponseWriter, r *http.Request) {
-	q := r.FormValue("q")
+type Result struct {
+	URL       string
+	Title     string
+	Content   string
+	UpdatedAt string
+}
 
-	offset, err := formIntValue(r, "offset", 0)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+func titleToURL(title string) string {
+	return fmt.Sprintf("https://ja.wikipedia.org/wiki/%s",
+		url.QueryEscape(title))
+}
+
+func calcStartDate(timespan string) time.Time {
+	var duration time.Duration
+	switch timespan {
+	case "week":
+		duration = 7 * 24 * time.Hour
+	case "month":
+		duration = 31 * 24 * time.Hour
+	case "year":
+		duration = 365 * 24 * time.Hour
+	default:
+		return time.Unix(0, 0)
 	}
+	return time.Now().Add(-duration)
+}
 
-	limitCount, err := formIntValue(r, "limit", 20)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+const viewablePageCount = 9
 
-	startDate, err := formDateValue(r, "sd", time.Unix(0, 0))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	bw := bufio.NewWriter(w)
-
-	table := ctx.Get("Articles")
-	defer ctx.ObjUnlinkDefer(&err, table)
-
-	var res *grn.Obj
-	if q != "" || !startDate.IsZero() {
-		cond, v, err := ctx.ExprCreateForQuery(table)
+func getIndex(c *gin.Context) {
+	c.Request.ParseForm()
+	q := c.Request.Form.Get("q")
+	timespan := c.Request.Form.Get("timespan")
+	var err error
+	var limitCount int = 10
+	var page int = 1
+	var numPages int = 1
+	var matchedCount uint
+	viewablePages := []int{}
+	results := []Result{}
+	if q != "" {
+		page, err = formIntValue(c, "page", 1)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			c.String(http.StatusBadRequest, err.Error())
 			return
 		}
-		defer ctx.ObjUnlinkDefer(&err, cond)
-		defer ctx.ObjUnlinkDefer(&err, v)
+		if page < 1 {
+			page = 1
+		}
 
-		if q != "" {
-			flags := grn.EXPR_SYNTAX_QUERY | grn.EXPR_ALLOW_PRAGMA | grn.EXPR_ALLOW_COLUMN
-			err = ctx.ExprParse(cond, q, nil, grn.OP_MATCH, grn.OP_AND, flags)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
+		limitCount, err = formIntValue(c, "limit", 10)
+		if err != nil {
+			c.String(http.StatusBadRequest, err.Error())
+			return
+		}
+		offset := (page - 1) * limitCount
+
+		startDate := calcStartDate(timespan)
+
+		table, err := db.OpenTable("Articles")
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+		defer table.Close()
+
+		expr, err := table.CreateQuery("")
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+		defer expr.Close()
+
+		query := fmt.Sprintf("_key:@%s OR text:@%s", q, q)
+		err = expr.Parse(query, nil, grn.OP_MATCH, grn.OP_AND,
+			grn.EXPR_SYNTAX_QUERY|grn.EXPR_ALLOW_PRAGMA|grn.EXPR_ALLOW_COLUMN)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
 		}
 		if !startDate.IsZero() {
 			usecStartTime := startDate.UnixNano() / 1000
 			filter := "updated_at >= " + strconv.FormatInt(usecStartTime, 10)
-			err = ctx.ExprParse(cond, filter, nil, grn.OP_MATCH, grn.OP_AND,
+			err = expr.Parse(filter, nil, grn.OP_MATCH, grn.OP_AND,
 				grn.EXPR_SYNTAX_SCRIPT)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				c.String(http.StatusInternalServerError, err.Error())
 				return
 			}
 
 			if q != "" {
-				err = ctx.ExprAppendOp(cond, grn.OP_AND, 2)
+				err = expr.AppendOp(grn.OP_AND, 2)
 				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
+					c.String(http.StatusInternalServerError, err.Error())
 					return
 				}
 			}
 		}
 
-		res, err = ctx.TableSelect(table, cond, nil, grn.OP_OR)
+		res, err := table.Select(expr, nil, grn.OP_OR)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
-		defer ctx.ObjUnlinkDefer(&err, res)
-	} else {
-		res = table
-	}
+		defer res.Close()
 
-	count, err := ctx.TableSize(res)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	var resultCount uint = count
-	if uint(limitCount) < count {
-		resultCount = uint(limitCount)
-	}
-
-	var keyColumn *grn.Obj
-	keyColumn, err = ctx.ObjColumn(res, "_key")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer ctx.ObjUnlinkDefer(&err, keyColumn)
-
-	var textColumn *grn.Obj
-	textColumn, err = ctx.ObjColumn(res, "text")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer ctx.ObjUnlinkDefer(&err, textColumn)
-
-	var updatedAtColumn *grn.Obj
-	updatedAtColumn, err = ctx.ObjColumn(res, "updated_at")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer ctx.ObjUnlinkDefer(&err, updatedAtColumn)
-
-	tc, err := ctx.TableCursorOpen(res, "", "", offset, limitCount, grn.CURSOR_ASCENDING)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	bw.WriteString(fmt.Sprintf(`{"matchedCount":%d,`, count))
-	bw.WriteString(fmt.Sprintf(`"resultCount":%d,`, resultCount))
-	bw.WriteString(`"results":[`)
-	var buf grn.Obj
-	defer ctx.ObjUnlinkDefer(&err, &buf)
-	var jsonBuf []byte
-	first := true
-	for {
-		id := ctx.TableCursorNext(tc)
-		if id == grn.ID_NIL {
-			break
-		}
-		grn.TextInit(&buf, 0)
-		grn.BulkRewind(&buf)
-		ctx.ObjGetValue(keyColumn, id, &buf)
-		key := grn.BulkHead(&buf)
-
-		grn.TextInit(&buf, 0)
-		grn.BulkRewind(&buf)
-		ctx.ObjGetValue(textColumn, id, &buf)
-		text := grn.BulkHead(&buf)
-
-		grn.TimeInit(&buf, 0)
-		ctx.ObjGetValue(updatedAtColumn, id, &buf)
-		updatedAt := grn.TimeValue(&buf)
-
-		r := []rune(text)
-		if len(r) >= 200 {
-			text = string(r[:200]) + "…"
-		}
-
-		if first {
-			first = false
-		} else {
-			bw.WriteRune(',')
-			bw.WriteRune('\n')
-		}
-		bw.WriteString(`{"title":`)
-		jsonBuf, err = json.Marshal(key)
+		matchedCount, err = res.RecordCount()
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
-		bw.Write(jsonBuf)
-		bw.WriteString(`,"text":`)
-		jsonBuf, err = json.Marshal(text)
+		numPages = ((int(matchedCount) - 1) / limitCount) + 1
+		if page > numPages {
+			page = numPages
+		}
+		startPage := page - (viewablePageCount / 2)
+		if startPage < 1 {
+			startPage = 1
+		}
+		endPage := startPage + viewablePageCount
+		if endPage > numPages+1 {
+			endPage = numPages + 1
+			if endPage-startPage < viewablePageCount {
+				startPage = endPage - viewablePageCount
+				if startPage < 1 {
+					startPage = 1
+				}
+			}
+		}
+		for i := startPage; i < endPage; i++ {
+			viewablePages = append(viewablePages, i)
+		}
+
+		keyColumn, err := table.OpenColumn("_key")
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
-		bw.Write(jsonBuf)
-		bw.WriteString(`,"updated_at":`)
-		bw.WriteString(strconv.FormatInt(updatedAt.Unix(), 10))
-		bw.WriteString(`}`)
+
+		textColumn, err := table.OpenColumn("text")
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		updatedAtColumn, err := table.OpenColumn("updated_at")
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		tc, err := res.OpenTableCursor("", "", offset, limitCount, grn.CURSOR_ASCENDING)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+		defer res.Close()
+
+		flags := grn.SNIP_COPY_TAG | grn.SNIP_SKIP_LEADING_SPACES
+		textMaxLen := 200
+		snippet := expr.Snippet(flags, textMaxLen, 1, true,
+			[][]string{
+				[]string{"<b>", "</b>"},
+			})
+		for {
+			id, hasNext := tc.Next()
+			if !hasNext {
+				break
+			}
+
+			//title := res.GetKey(id)
+			title := id.GetString(keyColumn)
+			text := id.GetString(textColumn)
+			updatedAt := id.GetTime(updatedAtColumn)
+
+			snipResults, err := snippet.Exec(text)
+			if err != nil {
+				c.String(http.StatusInternalServerError, err.Error())
+				return
+			}
+			if len(snipResults) > 0 {
+				text = "..." + snipResults[0] + "..."
+
+			} else {
+				if utf8.RuneCountInString(text) >= textMaxLen {
+					r := []rune(text)
+					text = string(r[:textMaxLen]) + "..."
+				}
+				text = html.EscapeString(text)
+			}
+
+			url := titleToURL(title)
+
+			results = append(results, Result{
+				URL:       url,
+				Title:     title,
+				Content:   text,
+				UpdatedAt: updatedAt.Format("2006/01/02"),
+			})
+		}
 	}
-	ctx.TableCursorClose(tc)
-	bw.WriteString(`]}`)
-	bw.Flush()
 
-	return
-}
-
-var ctx *grn.Ctx
-var dbFilename string
-var listenAddress string
-var htmlDir string
-
-func init() {
-	flag.StringVar(&dbFilename, "d", "wikipedia_ja.db", "database filename")
-	flag.StringVar(&listenAddress, "l", ":8080", "listen address (address:port)")
-	flag.StringVar(&htmlDir, "h", "public", "html directory")
+	url_ := fmt.Sprintf("%s?q=%s&timespan=%s&limit=%d",
+		c.Request.URL.Path, url.QueryEscape(q), timespan, limitCount)
+	tpl, err := pongo2.FromFile("templates/index.html")
+	if err != nil {
+		c.String(500, "Internal Server Error")
+	}
+	err = tpl.ExecuteWriter(pongo2.Context{
+		"url":           url_,
+		"q":             q,
+		"timespan":      timespan,
+		"matchedCount":  matchedCount,
+		"results":       results,
+		"page":          page,
+		"numPages":      numPages,
+		"viewablePages": viewablePages,
+	}, c.Writer)
+	if err != nil {
+		c.String(500, "Internal Server Error")
+	}
 }
 
 func main() {
@@ -245,24 +286,22 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer grn.FinDefer(&err)
+	defer grn.Terminate()
 
-	ctx, err = grn.CtxOpen(0)
+	ctx, err := grn.NewContext()
 	if err != nil {
 		panic(err)
 	}
-	defer ctx.CloseDefer(&err)
+	defer ctx.Close()
 
-	var db *grn.Obj
-	db, err = ctx.DBOpenOrCreate(dbFilename, nil)
+	db, err = ctx.OpenDB(dbFilename)
 	if err != nil {
 		panic(err)
 	}
-	defer ctx.ObjUnlinkDefer(&err, db)
+	defer db.Close()
 
-	http.HandleFunc("/search", searchHandler)
-	http.HandleFunc("/", staticFileHandler("index.html"))
-	http.HandleFunc("/js/mithril.js", staticFileHandler("js/mithril.js"))
-	http.HandleFunc("/js/observable.js", staticFileHandler("js/observable.js"))
-	http.ListenAndServe(listenAddress, nil)
+	r := gin.Default()
+	r.Static("/static", "./static")
+	r.GET("/", getIndex)
+	r.Run(listenAddress)
 }

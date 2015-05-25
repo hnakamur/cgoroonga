@@ -1,11 +1,5 @@
 package cgoroonga
 
-// ID values
-const (
-	ID_NIL = 0x00
-	ID_MAX = 0x3fffffff
-)
-
 // builtin types
 const (
 	DB_VOID = iota
@@ -79,20 +73,6 @@ const (
 
 	OBJ_TEMPORARY  = 0x00 << 15
 	OBJ_PERSISTENT = 0x01 << 15
-)
-
-// ObjSetValue flags
-const (
-	OBJ_SET_MASK = 0x07
-	OBJ_SET      = 0x01
-	OBJ_INCR     = 0x02
-	OBJ_DECR     = 0x03
-	OBJ_APPEND   = 0x04
-	OBJ_PREPEND  = 0x05
-	OBJ_GET      = 0x01 << 4
-	OBJ_COMPARE  = 0x01 << 5
-	OBJ_LOCK     = 0x01 << 6
-	OBJ_UNLOCK   = 0x01 << 7
 )
 
 // error codes
@@ -271,7 +251,7 @@ const (
 	EXPR_ALLOW_LEADING_NOT     = 0x10
 )
 
-// TableCursorOpen flags
+// OpenTableCursor flags
 const (
 	CURSOR_ASCENDING   = 0x00 << 0
 	CURSOR_DESCENDING  = 0x01 << 0

@@ -18,11 +18,7 @@ func (e Error) Error() string {
 
 // errors which does not have error codes.
 var (
-	ColumnCreateError = Error{Message: "column create error"}
-	CtxOpenError      = Error{Message: "ctx open error"}
-	DBCreateError     = Error{Message: "db create error"}
-	TableCreateError  = Error{Message: "table create error"}
-	ObjColumnError    = Error{Message: "column not found error"}
+	NotFoundError = Error{Message: "not found error"}
 )
 
 // errors which have error codes.

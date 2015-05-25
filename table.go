@@ -7,90 +7,69 @@ package cgoroonga
 import "C"
 import "unsafe"
 
-func (c *Ctx) TableOpen(name string) (*Obj, error) {
-	cName := C.CString(name)
-	defer C.free(unsafe.Pointer(cName))
-
-	cNameLen := C.strlen(cName)
-	table := C.grn_ctx_get(
-		(*C.struct__grn_ctx)(unsafe.Pointer(c)), cName, C.int(cNameLen))
-	if table == nil {
-		return nil, NoSuchFileOrDirectoryError
-	}
-	return (*Obj)(unsafe.Pointer(table)), nil
+type Table struct {
+	*Records
 }
 
-func (c *Ctx) TableOpenOrCreate(name string, path string, flags ObjFlags, keyType, valueType *Obj) (*Obj, error) {
-	cName := C.CString(name)
-	defer C.free(unsafe.Pointer(cName))
+func (t *Table) CreateColumn(name, path string, flags, columnType int) (*Column, error) {
+	var cName *C.char
+	var cNameLen C.size_t
+	if name != "" {
+		cName = C.CString(name)
+		defer C.free(unsafe.Pointer(cName))
+		cNameLen = C.strlen(cName)
+	}
 
-	cNameLen := C.strlen(cName)
-	table := C.grn_ctx_get(
-		(*C.struct__grn_ctx)(unsafe.Pointer(c)), cName, C.int(cNameLen))
-	if table == nil {
-		var cPath *C.char
-		if path != "" {
-			cPath = C.CString(path)
-			defer C.free(unsafe.Pointer(cPath))
+	var cPath *C.char
+	if path != "" {
+		cPath = C.CString(path)
+		defer C.free(unsafe.Pointer(cPath))
+	}
+
+	cCtx := t.db.context.cCtx
+	columnTypeObj := C.grn_ctx_at(cCtx, C.grn_id(columnType))
+	if columnTypeObj == nil {
+		return nil, InvalidArgumentError
+	}
+	cColumn := C.grn_column_create(cCtx, t.cRecords, cName, C.uint(cNameLen),
+		cPath, C.grn_obj_flags(flags), columnTypeObj)
+	if cColumn == nil {
+		return nil, errorFromRc(cCtx.rc)
+	}
+	column := &Column{table: t, cColumn: cColumn}
+	t.addColumnToMap(name, column)
+	return column, nil
+}
+
+func (t *Table) OpenColumn(name string) (*Column, error) {
+	var cName *C.char
+	var cNameLen C.size_t
+	if name != "" {
+		cName = C.CString(name)
+		defer C.free(unsafe.Pointer(cName))
+		cNameLen = C.strlen(cName)
+	}
+
+	cCtx := t.db.context.cCtx
+	cColumn := C.grn_obj_column(cCtx, t.cRecords, cName, C.uint(cNameLen))
+	if cColumn == nil {
+		if cCtx.rc != SUCCESS {
+			return nil, errorFromRc(cCtx.rc)
 		}
+		return nil, NotFoundError
+	}
+	column := &Column{table: t, cColumn: cColumn}
+	t.addColumnToMap(name, column)
+	return column, nil
+}
 
-		table = C.grn_table_create(
-			(*C.struct__grn_ctx)(unsafe.Pointer(c)),
-			cName, C.uint(cNameLen),
-			cPath,
-			C.grn_obj_flags(flags),
-			(*C.struct__grn_obj)(unsafe.Pointer(keyType)),
-			(*C.struct__grn_obj)(unsafe.Pointer(valueType)))
-		if table == nil {
-			return nil, TableCreateError
+func (t *Table) OpenOrCreateColumn(name, path string, flags, columnType int) (*Column, error) {
+	column, err := t.OpenColumn(name)
+	if err != nil {
+		if err != NotFoundError {
+			return nil, err
 		}
+		column, err = t.CreateColumn(name, path, flags, columnType)
 	}
-	return (*Obj)(unsafe.Pointer(table)), nil
-}
-
-func (c *Ctx) TableAdd(table *Obj, key string) (recordID ID, added bool, err error) {
-	var cKey *C.char
-	var cKeyLen C.size_t
-	if key != "" {
-		cKey = C.CString(key)
-		defer C.free(unsafe.Pointer(cKey))
-
-		cKeyLen = C.strlen(cKey)
-	}
-	var cAdded C.int
-	recordID = ID(C.grn_table_add(
-		(*C.struct__grn_ctx)(unsafe.Pointer(c)),
-		(*C.struct__grn_obj)(unsafe.Pointer(table)),
-		unsafe.Pointer(cKey),
-		C.uint(cKeyLen),
-		&cAdded))
-	if cAdded != 0 {
-		added = true
-	} else {
-		added = false
-	}
-	return
-}
-
-func (c *Ctx) TableSelect(table, expr, res *Obj, op Operator) (*Obj, error) {
-	result := C.grn_table_select(
-		(*C.struct__grn_ctx)(unsafe.Pointer(c)),
-		(*C.struct__grn_obj)(unsafe.Pointer(table)),
-		(*C.struct__grn_obj)(unsafe.Pointer(expr)),
-		(*C.struct__grn_obj)(unsafe.Pointer(res)),
-		C.grn_operator(op))
-	if result == nil {
-		return nil, errorFromRc(c.rc)
-	}
-	return (*Obj)(unsafe.Pointer(result)), nil
-}
-
-func (c *Ctx) TableSize(table *Obj) (uint, error) {
-	n := C.grn_table_size(
-		(*C.struct__grn_ctx)(unsafe.Pointer(c)),
-		(*C.struct__grn_obj)(unsafe.Pointer(table)))
-	if c.rc != SUCCESS {
-		return 0, errorFromRc(c.rc)
-	}
-	return uint(n), nil
+	return column, err
 }
