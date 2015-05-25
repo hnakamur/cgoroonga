@@ -222,6 +222,48 @@ func TestOpenNonExistingColumn(t *testing.T) {
 	}
 }
 
+func TestOpenOrCreateColumn(t *testing.T) {
+	dirName, err := ioutil.TempDir("", "goroonga-TestOpenOrCreateColumn-")
+	if err != nil {
+		t.Errorf("failed to create a temporary directory with error: %s", err)
+	}
+	defer os.Remove(dirName)
+
+	err = Init()
+	if err != nil {
+		t.Errorf("failed to initialize with error: %s", err)
+	}
+	defer Terminate()
+
+	ctx, err := NewContext()
+	if err != nil {
+		t.Errorf("failed to create context with error: %s", err)
+	}
+	defer ctx.Close()
+
+	dbPath := filepath.Join(dirName, "test.db")
+	db, err := ctx.CreateDB(dbPath)
+	if err != nil {
+		t.Errorf("failed to create a database with error: %s", err)
+	}
+	defer db.Remove()
+
+	table, err := db.CreateTable("Table1", "",
+		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, DB_SHORT_TEXT)
+	if err != nil {
+		t.Errorf("failed to create a table with error: %s", err)
+	}
+
+	column, err := table.OpenOrCreateColumn("column1", "",
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TEXT)
+	if err != nil {
+		t.Errorf("failed to create a column with error: %s", err)
+	}
+	if !fileExists(column.Path()) {
+		t.Errorf("column file should exist")
+	}
+}
+
 type table1 struct {
 	key       string
 	content   string

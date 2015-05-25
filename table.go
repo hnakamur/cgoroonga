@@ -62,3 +62,14 @@ func (t *Table) OpenColumn(name string) (*Column, error) {
 	t.addColumnToMap(name, column)
 	return column, nil
 }
+
+func (t *Table) OpenOrCreateColumn(name, path string, flags, columnType int) (*Column, error) {
+	column, err := t.OpenColumn(name)
+	if err != nil {
+		if err != NotFoundError {
+			return nil, err
+		}
+		column, err = t.CreateColumn(name, path, flags, columnType)
+	}
+	return column, err
+}
