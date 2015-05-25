@@ -109,6 +109,32 @@ func TestOpenDBAndClose(t *testing.T) {
 	defer db.Remove()
 }
 
+func TestOpenNonExistentDB(t *testing.T) {
+	dirName, err := ioutil.TempDir("", "goroonga-TestOpenNonExistentDB-")
+	if err != nil {
+		t.Errorf("failed to create a temporary directory with error: %s", err)
+	}
+	defer os.Remove(dirName)
+
+	err = Init()
+	if err != nil {
+		t.Errorf("failed to initialize with error: %s", err)
+	}
+	defer Terminate()
+
+	ctx, err := NewContext()
+	if err != nil {
+		t.Errorf("failed to create context with error: %s", err)
+	}
+	defer ctx.Close()
+
+	path := filepath.Join(dirName, "test.db")
+	_, err = ctx.OpenDB(path)
+	if err != NoSuchFileOrDirectoryError {
+		t.Errorf("unexpected err from OpenDB, want: %s, got: %s", NoSuchFileOrDirectoryError, err)
+	}
+}
+
 func fileExists(path string) bool {
 	file, err := os.Open(path)
 	if err != nil {
