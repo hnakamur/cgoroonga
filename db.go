@@ -79,3 +79,14 @@ func (d *DB) OpenTable(name string) (*Table, error) {
 	}
 	return &Table{&Records{db: d, cRecords: cTable}}, nil
 }
+
+func (d *DB) OpenOrCreateTable(name, path string, flags, keyType int) (*Table, error) {
+	table, err := d.OpenTable(name)
+	if err != nil {
+		if err != NotFoundError {
+			return nil, err
+		}
+		table, err = d.CreateTable(name, path, flags, keyType)
+	}
+	return table, err
+}
