@@ -27,7 +27,7 @@ func (e *Expr) Close() {
 	}
 }
 
-func (e *Expr) Parse(str string, defaultColumn *Column, defaultMode, defaultOp, flags int) error {
+func (e *Expr) Parse(str string, defaultColumn *Expr, defaultMode, defaultOp, flags int) error {
 	var cStr *C.char
 	var cStrLen C.size_t
 	if str != "" {
@@ -38,7 +38,7 @@ func (e *Expr) Parse(str string, defaultColumn *Column, defaultMode, defaultOp, 
 
 	var cDefaultColumn *C.grn_obj
 	if defaultColumn != nil {
-		cDefaultColumn = defaultColumn.cColumn
+		cDefaultColumn = defaultColumn.cExpr
 	}
 	cCtx := e.context.cCtx
 	rc := C.grn_expr_parse(cCtx, e.cExpr, cStr, C.uint(cStrLen),

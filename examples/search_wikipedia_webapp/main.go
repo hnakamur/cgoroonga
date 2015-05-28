@@ -121,38 +121,13 @@ func getIndex(c *gin.Context) {
 		}
 		defer table.Close()
 
-		expr, err := table.CreateQuery("")
+		expr, defaultColumns, err := buildSearchExpr(table, q, startDate)
 		if err != nil {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
 		defer expr.Close()
-
-		query := fmt.Sprintf("_key:@%s OR text:@%s", q, q)
-		err = expr.Parse(query, nil, grn.OP_MATCH, grn.OP_AND,
-			grn.EXPR_SYNTAX_QUERY|grn.EXPR_ALLOW_PRAGMA|grn.EXPR_ALLOW_COLUMN)
-		if err != nil {
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		}
-		if !startDate.IsZero() {
-			usecStartTime := startDate.UnixNano() / 1000
-			filter := "updated_at >= " + strconv.FormatInt(usecStartTime, 10)
-			err = expr.Parse(filter, nil, grn.OP_MATCH, grn.OP_AND,
-				grn.EXPR_SYNTAX_SCRIPT)
-			if err != nil {
-				c.String(http.StatusInternalServerError, err.Error())
-				return
-			}
-
-			if q != "" {
-				err = expr.AppendOp(grn.OP_AND, 2)
-				if err != nil {
-					c.String(http.StatusInternalServerError, err.Error())
-					return
-				}
-			}
-		}
+		defer defaultColumns.Close()
 
 		res, err := table.Select(expr, nil, grn.OP_OR)
 		if err != nil {
@@ -276,6 +251,46 @@ func getIndex(c *gin.Context) {
 	if err != nil {
 		c.String(500, "Internal Server Error")
 	}
+}
+
+func buildSearchExpr(table *grn.Table, q string, startDate time.Time) (expr, defaultColumns *grn.Expr, err error) {
+	defaultColumns, err = table.CreateQuery("")
+	if err != nil {
+		return
+	}
+	err = defaultColumns.Parse("_key,text", nil, grn.OP_MATCH, grn.OP_AND,
+		grn.EXPR_SYNTAX_SCRIPT)
+	if err != nil {
+		return
+	}
+
+	expr, err = table.CreateQuery("")
+	if err != nil {
+		return
+	}
+
+	err = expr.Parse(q, defaultColumns, grn.OP_MATCH, grn.OP_AND,
+		grn.EXPR_SYNTAX_QUERY|grn.EXPR_ALLOW_PRAGMA|grn.EXPR_ALLOW_COLUMN)
+	if err != nil {
+		return
+	}
+	if !startDate.IsZero() {
+		usecStartTime := startDate.UnixNano() / 1000
+		filter := "updated_at >= " + strconv.FormatInt(usecStartTime, 10)
+		err = expr.Parse(filter, defaultColumns, grn.OP_MATCH, grn.OP_AND,
+			grn.EXPR_SYNTAX_SCRIPT)
+		if err != nil {
+			return
+		}
+
+		if q != "" {
+			err = expr.AppendOp(grn.OP_AND, 2)
+			if err != nil {
+				return
+			}
+		}
+	}
+	return
 }
 
 func main() {
