@@ -144,7 +144,7 @@ func getIndex(c *gin.Context) {
 		normalizePageAndLimit(int(matchedCount), &page, &limitCount)
 		offset := (page - 1) * limitCount
 
-		sorted, err := res.Sort("-updated_at", offset, limitCount)
+		sorted, err := res.Sort("_score", offset, limitCount)
 		if err != nil {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
