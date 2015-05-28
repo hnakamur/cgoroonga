@@ -187,3 +187,28 @@ func (r *Records) OpenTableCursor(min, max string, offset, limit, flags int) (*T
 	}
 	return &TableCursor{records: r, cCursor: cCursor}, nil
 }
+
+func (r *Records) Sort(sortBy string, offset, limit int) (sorted *Records, err error) {
+	cSortBy := C.CString(sortBy)
+	defer C.free(unsafe.Pointer(cSortBy))
+	cSortByLen := C.strlen(cSortBy)
+
+	cCtx := r.db.context.cCtx
+
+	var nKeys C.uint
+	cKeys := C.grn_table_sort_key_from_str(cCtx, cSortBy, C.uint(cSortByLen),
+		r.cRecords, &nKeys)
+	if cKeys == nil {
+		return nil, errorFromRc(cCtx.rc)
+	}
+	defer C.grn_table_sort_key_close(cCtx, cKeys, nKeys)
+
+	cSorted := C.grn_table_create(cCtx, nil, 0, nil, OBJ_TABLE_NO_KEY, nil,
+		r.cRecords)
+	if cSorted == nil {
+		return nil, errorFromRc(cCtx.rc)
+	}
+	C.grn_table_sort(cCtx, r.cRecords, C.int(offset), C.int(limit), cSorted,
+		cKeys, C.int(nKeys))
+	return &Records{db: r.db, cRecords: cSorted}, nil
+}

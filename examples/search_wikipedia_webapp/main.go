@@ -82,14 +82,18 @@ func calcStartDate(timespan string) time.Time {
 	return time.Now().Add(-duration)
 }
 
-const viewablePageCount = 9
+const (
+	defaultPageSize   = 10
+	maxPageSize       = 100
+	viewablePageCount = 9
+)
 
 func getIndex(c *gin.Context) {
 	c.Request.ParseForm()
 	q := c.Request.Form.Get("q")
 	timespan := c.Request.Form.Get("timespan")
 	var err error
-	var limitCount int = 10
+	var limitCount int = defaultPageSize
 	var page int = 1
 	var numPages int = 1
 	var matchedCount uint
@@ -101,16 +105,11 @@ func getIndex(c *gin.Context) {
 			c.String(http.StatusBadRequest, err.Error())
 			return
 		}
-		if page < 1 {
-			page = 1
-		}
-
-		limitCount, err = formIntValue(c, "limit", 10)
+		limitCount, err = formIntValue(c, "limit", defaultPageSize)
 		if err != nil {
 			c.String(http.StatusBadRequest, err.Error())
 			return
 		}
-		offset := (page - 1) * limitCount
 
 		startDate := calcStartDate(timespan)
 
@@ -141,6 +140,17 @@ func getIndex(c *gin.Context) {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
+
+		normalizePageAndLimit(int(matchedCount), &page, &limitCount)
+		offset := (page - 1) * limitCount
+
+		sorted, err := res.Sort("-updated_at", offset, limitCount)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+		defer sorted.Close()
+
 		numPages = ((int(matchedCount) - 1) / limitCount) + 1
 		if page > numPages {
 			page = numPages
@@ -163,25 +173,25 @@ func getIndex(c *gin.Context) {
 			viewablePages = append(viewablePages, i)
 		}
 
-		keyColumn, err := res.OpenColumn("_key")
+		keyColumn, err := sorted.OpenColumn("_key")
 		if err != nil {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
 
-		textColumn, err := res.OpenColumn("text")
+		textColumn, err := sorted.OpenColumn("text")
 		if err != nil {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
 
-		updatedAtColumn, err := res.OpenColumn("updated_at")
+		updatedAtColumn, err := sorted.OpenColumn("updated_at")
 		if err != nil {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
 
-		tc, err := res.OpenTableCursor("", "", offset, limitCount, grn.CURSOR_ASCENDING)
+		tc, err := sorted.OpenTableCursor("", "", 0, limitCount, grn.CURSOR_ASCENDING)
 		if err != nil {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
@@ -200,7 +210,6 @@ func getIndex(c *gin.Context) {
 				break
 			}
 
-			//title := res.GetKey(id)
 			title := id.GetString(keyColumn)
 			text := id.GetString(textColumn)
 			updatedAt := id.GetTime(updatedAtColumn)
@@ -250,6 +259,22 @@ func getIndex(c *gin.Context) {
 	}, c.Writer)
 	if err != nil {
 		c.String(500, "Internal Server Error")
+	}
+}
+
+func normalizePageAndLimit(matchedCount int, page, limit *int) {
+	if *limit < defaultPageSize {
+		*limit = defaultPageSize
+	} else if *limit > maxPageSize {
+		*limit = maxPageSize
+	}
+
+	pageSize := *limit
+	maxPage := (int(matchedCount)-1)/pageSize + 1
+	if *page < 1 {
+		*page = 1
+	} else if *page > maxPage {
+		*page = maxPage
 	}
 }
 
