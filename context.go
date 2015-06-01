@@ -63,7 +63,7 @@ func (c *Context) OpenDB(path string) (*DB, error) {
 func (c *Context) OpenOrCreateDB(path string) (*DB, error) {
 	db, err := c.OpenDB(path)
 	if err != nil {
-		if err != NoSuchFileOrDirectoryError {
+		if err != InvalidArgumentError {
 			return nil, err
 		}
 		db, err = c.CreateDB(path)
