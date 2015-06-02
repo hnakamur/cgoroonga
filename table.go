@@ -51,3 +51,24 @@ func (t *Table) OpenOrCreateColumn(name, path string, flags, columnType int) (*C
 	}
 	return column, err
 }
+
+func (t *Table) IsLocked() bool {
+	locked := C.grn_obj_is_locked(t.db.context.cCtx, t.cRecords)
+	return locked != 0
+}
+
+func (t *Table) Lock(seconds int) error {
+	rc := C.grn_obj_lock(t.db.context.cCtx, t.cRecords, C.GRN_ID_NIL, C.int(seconds))
+	if rc != SUCCESS {
+		return errorFromRc(rc)
+	}
+	return nil
+}
+
+func (t *Table) Unlock() error {
+	rc := C.grn_obj_unlock(t.db.context.cCtx, t.cRecords, C.GRN_ID_NIL)
+	if rc != SUCCESS {
+		return errorFromRc(rc)
+	}
+	return nil
+}

@@ -358,3 +358,59 @@ func TestSelect(t *testing.T) {
 		t.Errorf("record count mismatch: want %s, got %s", 1, count)
 	}
 }
+
+func TestLock(t *testing.T) {
+	tempDir, ctx, db := setupTestDB(t, "goroonga-TestLock-")
+	defer tearDownTestDB(t, tempDir, ctx, db)
+
+	table, err := db.CreateTable("Table1", "",
+		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, DB_SHORT_TEXT)
+	if err != nil {
+		t.Errorf("failed to create a table with error: %s", err)
+	}
+
+	_, err = table.CreateColumn("content", "",
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TEXT)
+	if err != nil {
+		t.Errorf("failed to create a column with error: %s", err)
+	}
+
+	_, err = table.CreateColumn("updated_at", "",
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TIME)
+	if err != nil {
+		t.Errorf("failed to create a column with error: %s", err)
+	}
+
+	err = addTable1Record(table, table1{
+		key: "key1", content: "content1",
+		updatedAt: mustParseRFC3339Time("2015-05-24T12:34:56+09:00"),
+	})
+	if err != nil {
+		t.Errorf("failed to add a record with error: %s", err)
+	}
+	err = addTable1Record(table, table1{
+		key: "key2", content: "content2",
+		updatedAt: mustParseRFC3339Time("2015-05-23T10:30:50+09:00"),
+	})
+	if err != nil {
+		t.Errorf("failed to add a record with error: %s", err)
+	}
+
+	if table.IsLocked() {
+		t.Errorf("should not be locked at initial state")
+	}
+	err = table.Lock(1)
+	if err != nil {
+		t.Errorf("failed to lock a table with error: %s", err)
+	}
+	if !table.IsLocked() {
+		t.Errorf("should be locked after locking")
+	}
+	err = table.Unlock()
+	if err != nil {
+		t.Errorf("failed to unlock a table with error: %s", err)
+	}
+	if table.IsLocked() {
+		t.Errorf("should not be locked at initial state")
+	}
+}
