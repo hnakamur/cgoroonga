@@ -130,8 +130,8 @@ func TestOpenNonExistentDB(t *testing.T) {
 
 	path := filepath.Join(dirName, "test.db")
 	_, err = ctx.OpenDB(path)
-	if err != NoSuchFileOrDirectoryError {
-		t.Errorf("unexpected err from OpenDB, want: %s, got: %s", NoSuchFileOrDirectoryError, err)
+	if err != InvalidArgumentError {
+		t.Errorf("unexpected err from OpenDB, want: %s, got: %s", InvalidArgumentError, err)
 	}
 }
 
