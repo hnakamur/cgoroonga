@@ -399,12 +399,16 @@ func TestLock(t *testing.T) {
 	if table.IsLocked() {
 		t.Errorf("should not be locked at initial state")
 	}
-	err = table.Lock(1)
+	err = table.Lock(0)
 	if err != nil {
 		t.Errorf("failed to lock a table with error: %s", err)
 	}
 	if !table.IsLocked() {
 		t.Errorf("should be locked after locking")
+	}
+	err = table.Lock(0)
+	if err != ResourceDeadlockAvoidedError {
+		t.Errorf("want ResourceDeadlockAvoidedError; got: %s", err)
 	}
 	err = table.Unlock()
 	if err != nil {
