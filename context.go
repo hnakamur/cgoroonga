@@ -111,3 +111,11 @@ func (c *Context) CreateExpr(name string) (*Expr, error) {
 	}
 	return &Expr{context: c, cExpr: cExpr}, nil
 }
+
+func grnCtxGet(cCtx *C.grn_ctx, name string) *C.grn_obj {
+	cName := C.CString(name)
+	defer C.free(unsafe.Pointer(cName))
+	cNameLen := C.strlen(cName)
+
+	return C.grn_ctx_get(cCtx, cName, C.int(cNameLen))
+}

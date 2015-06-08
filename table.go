@@ -3,6 +3,14 @@ package cgoroonga
 /*
 #cgo LDFLAGS: -lgroonga
 #include "cgoroonga.h"
+
+static void init_source_ids(grn_obj *obj) {
+	GRN_UINT32_INIT(obj, GRN_OBJ_VECTOR);
+}
+
+static void append_source_id(grn_ctx *ctx, grn_obj *source_ids, grn_id source_id) {
+	GRN_UINT32_PUT(ctx, source_ids, source_id);
+}
 */
 import "C"
 import "unsafe"
@@ -12,6 +20,61 @@ type Table struct {
 }
 
 func (t *Table) CreateColumn(name, path string, flags, columnType int) (*Column, error) {
+	cCtx := t.db.context.cCtx
+	columnTypeObj := C.grn_ctx_at(cCtx, C.grn_id(columnType))
+	if columnTypeObj == nil {
+		return nil, InvalidArgumentError
+	}
+	cColumn := grnColumnCreate(cCtx, t.cRecords, name, path, flags, columnTypeObj)
+	if cColumn == nil {
+		return nil, errorFromRc(cCtx.rc)
+	}
+	column := &Column{table: t, cColumn: cColumn}
+	t.addColumnToMap(name, column)
+	return column, nil
+}
+
+func (t *Table) CreateIndexColumn(name, path string, flags int, sourceType string, source ...string) (*Column, error) {
+	cCtx := t.db.context.cCtx
+
+	cSourceType := grnCtxGet(cCtx, sourceType)
+	if cSourceType == nil {
+		return nil, InvalidArgumentError
+	}
+	defer C.grn_obj_unlink(cCtx, cSourceType)
+
+	cColumn := grnColumnCreate(cCtx, t.cRecords, name, path, flags, cSourceType)
+	if cColumn == nil {
+		return nil, errorFromRc(cCtx.rc)
+	}
+
+	var sourceIDs C.grn_obj
+	C.init_source_ids(&sourceIDs)
+	defer C.grn_obj_unlink(cCtx, &sourceIDs)
+	for _, s := range source {
+		var sourceID C.grn_id
+		if s == "_key" {
+			sourceID = C.grn_obj_id(cCtx, cSourceType)
+		} else {
+			cSrcColumn := grnObjColumn(cCtx, cSourceType, s)
+			if cSrcColumn == nil {
+				return nil, InvalidArgumentError
+			}
+			sourceID = C.grn_obj_id(cCtx, cSrcColumn)
+			C.grn_obj_unlink(cCtx, cSrcColumn)
+		}
+		C.append_source_id(cCtx, &sourceIDs, sourceID)
+	}
+	rc := C.grn_obj_set_info(cCtx, cColumn, C.GRN_INFO_SOURCE, &sourceIDs)
+	if rc != SUCCESS {
+		return nil, errorFromRc(rc)
+	}
+	column := &Column{table: t, cColumn: cColumn}
+	t.addColumnToMap(name, column)
+	return column, nil
+}
+
+func grnColumnCreate(cCtx *C.grn_ctx, cTable *C.grn_obj, name, path string, flags int, type_ *C.grn_obj) *C.grn_obj {
 	var cName *C.char
 	var cNameLen C.size_t
 	if name != "" {
@@ -26,19 +89,8 @@ func (t *Table) CreateColumn(name, path string, flags, columnType int) (*Column,
 		defer C.free(unsafe.Pointer(cPath))
 	}
 
-	cCtx := t.db.context.cCtx
-	columnTypeObj := C.grn_ctx_at(cCtx, C.grn_id(columnType))
-	if columnTypeObj == nil {
-		return nil, InvalidArgumentError
-	}
-	cColumn := C.grn_column_create(cCtx, t.cRecords, cName, C.uint(cNameLen),
-		cPath, C.grn_obj_flags(flags), columnTypeObj)
-	if cColumn == nil {
-		return nil, errorFromRc(cCtx.rc)
-	}
-	column := &Column{table: t, cColumn: cColumn}
-	t.addColumnToMap(name, column)
-	return column, nil
+	return C.grn_column_create(cCtx, cTable, cName, C.uint(cNameLen),
+		cPath, C.grn_obj_flags(flags), type_)
 }
 
 func (t *Table) OpenOrCreateColumn(name, path string, flags, columnType int) (*Column, error) {
@@ -53,12 +105,8 @@ func (t *Table) OpenOrCreateColumn(name, path string, flags, columnType int) (*C
 }
 
 func (t *Table) SetDefaultTokenizer(name string) error {
-	cName := C.CString(name)
-	defer C.free(unsafe.Pointer(cName))
-	cNameLen := C.strlen(cName)
-
 	cCtx := t.db.context.cCtx
-	cTokenizer := C.grn_ctx_get(cCtx, cName, C.int(cNameLen))
+	cTokenizer := grnCtxGet(cCtx, name)
 	if cTokenizer == nil {
 		return InvalidArgumentError
 	}

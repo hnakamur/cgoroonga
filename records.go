@@ -83,16 +83,8 @@ func (r *Records) addColumnToMap(name string, column *Column) {
 }
 
 func (r *Records) OpenColumn(name string) (*Column, error) {
-	var cName *C.char
-	var cNameLen C.size_t
-	if name != "" {
-		cName = C.CString(name)
-		defer C.free(unsafe.Pointer(cName))
-		cNameLen = C.strlen(cName)
-	}
-
 	cCtx := r.db.context.cCtx
-	cColumn := C.grn_obj_column(cCtx, r.cRecords, cName, C.uint(cNameLen))
+	cColumn := grnObjColumn(cCtx, r.cRecords, name)
 	if cColumn == nil {
 		if cCtx.rc != SUCCESS {
 			return nil, errorFromRc(cCtx.rc)
@@ -102,6 +94,18 @@ func (r *Records) OpenColumn(name string) (*Column, error) {
 	column := &Column{table: &Table{r}, cColumn: cColumn}
 	r.addColumnToMap(name, column)
 	return column, nil
+}
+
+func grnObjColumn(cCtx *C.grn_ctx, cTable *C.grn_obj, name string) *C.grn_obj {
+	var cName *C.char
+	var cNameLen C.size_t
+	if name != "" {
+		cName = C.CString(name)
+		defer C.free(unsafe.Pointer(cName))
+		cNameLen = C.strlen(cName)
+	}
+
+	return C.grn_obj_column(cCtx, cTable, cName, C.uint(cNameLen))
 }
 
 func (r *Records) AddRecord(key string) (recordID ID, added bool, err error) {
