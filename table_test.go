@@ -359,6 +359,54 @@ func TestSelect(t *testing.T) {
 	}
 }
 
+func TestGetRecord(t *testing.T) {
+	tempDir, ctx, db := setupTestDB(t, "goroonga-TestGetRecord-")
+	defer tearDownTestDB(t, tempDir, ctx, db)
+
+	table, err := db.CreateTable("Table1", "",
+		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, DB_SHORT_TEXT)
+	if err != nil {
+		t.Errorf("failed to create a table with error: %s", err)
+	}
+
+	contentColumn, err := table.CreateColumn("content", "",
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TEXT)
+	if err != nil {
+		t.Errorf("failed to create a column with error: %s", err)
+	}
+
+	_, err = table.CreateColumn("updated_at", "",
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TIME)
+	if err != nil {
+		t.Errorf("failed to create a column with error: %s", err)
+	}
+
+	err = addTable1Record(table, table1{
+		key: "key1", content: "content1",
+		updatedAt: mustParseRFC3339Time("2015-05-24T12:34:56+09:00"),
+	})
+	if err != nil {
+		t.Errorf("failed to add a record with error: %s", err)
+	}
+	err = addTable1Record(table, table1{
+		key: "key2", content: "content2",
+		updatedAt: mustParseRFC3339Time("2015-05-23T10:30:50+09:00"),
+	})
+	if err != nil {
+		t.Errorf("failed to add a record with error: %s", err)
+	}
+
+	key := "key2"
+	recordID, found := table.GetRecord(key)
+	if !found {
+		t.Errorf("the record should be found for key: \"%s\"", key)
+	}
+	content := recordID.GetString(contentColumn)
+	if content != "content2" {
+		t.Errorf("content mismatch: want %s, got %s", "content2", content)
+	}
+}
+
 func TestLock(t *testing.T) {
 	tempDir, ctx, db := setupTestDB(t, "goroonga-TestLock-")
 	defer tearDownTestDB(t, tempDir, ctx, db)

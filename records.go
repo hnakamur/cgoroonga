@@ -127,6 +127,26 @@ func (r *Records) AddRecord(key string) (recordID ID, added bool, err error) {
 	return
 }
 
+func (r *Records) GetRecord(key string) (recordID ID, found bool) {
+	var cKey *C.char
+	var cKeyLen C.size_t
+	if key != "" {
+		cKey = C.CString(key)
+		defer C.free(unsafe.Pointer(cKey))
+		cKeyLen = C.strlen(cKey)
+	}
+	cRecordID := C.grn_table_get(
+		r.db.context.cCtx,
+		r.cRecords,
+		unsafe.Pointer(cKey),
+		C.uint(cKeyLen))
+	if cRecordID != C.GRN_ID_NIL {
+		recordID = ID(cRecordID)
+		found = true
+	}
+	return
+}
+
 func (r *Records) CreateQuery(name string) (*Expr, error) {
 	expr, err := r.db.context.CreateExpr(name)
 	if err != nil {
