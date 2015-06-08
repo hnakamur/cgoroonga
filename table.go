@@ -52,6 +52,23 @@ func (t *Table) OpenOrCreateColumn(name, path string, flags, columnType int) (*C
 	return column, err
 }
 
+func (t *Table) SetDefaultTokenizer(name string) error {
+	cName := C.CString(name)
+	defer C.free(unsafe.Pointer(cName))
+	cNameLen := C.strlen(cName)
+
+	cCtx := t.db.context.cCtx
+	cTokenizer := C.grn_ctx_get(cCtx, cName, C.int(cNameLen))
+	if cTokenizer == nil {
+		return InvalidArgumentError
+	}
+	rc := C.grn_obj_set_info(cCtx, t.cRecords, C.GRN_INFO_DEFAULT_TOKENIZER, cTokenizer)
+	if rc != SUCCESS {
+		return errorFromRc(rc)
+	}
+	return nil
+}
+
 func (t *Table) IsLocked() bool {
 	locked := C.grn_obj_is_locked(t.db.context.cCtx, t.cRecords)
 	return locked != 0

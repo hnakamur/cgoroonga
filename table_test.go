@@ -359,6 +359,33 @@ func TestSelect(t *testing.T) {
 	}
 }
 
+func TestSetDefaultTokenizer(t *testing.T) {
+	tempDir, ctx, db := setupTestDB(t, "goroonga-TestSetDefaultTokenizer-")
+	defer tearDownTestDB(t, tempDir, ctx, db)
+
+	table, err := db.CreateTable("Table1", "",
+		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, DB_SHORT_TEXT)
+	if err != nil {
+		t.Errorf("failed to create a table with error: %s", err)
+	}
+	_, err = table.CreateColumn("content", "",
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TEXT)
+	if err != nil {
+		t.Errorf("failed to create a column with error: %s", err)
+	}
+	_, err = table.CreateColumn("updated_at", "",
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TIME)
+	if err != nil {
+		t.Errorf("failed to create a column with error: %s", err)
+	}
+
+	_, err := db.CreateTable("Table1Index", "",
+		OBJ_TABLE_PAT_KEY|OBJ_KEY_NORMALIZE|OBJ_PERSISTENT, DB_SHORT_TEXT)
+	if err != nil {
+		t.Errorf("failed to create an index table with error: %s", err)
+	}
+}
+
 func TestGetRecord(t *testing.T) {
 	tempDir, ctx, db := setupTestDB(t, "goroonga-TestGetRecord-")
 	defer tearDownTestDB(t, tempDir, ctx, db)
