@@ -275,18 +275,18 @@ func addTable1Record(t *Table, record table1) error {
 	if err != nil {
 		return err
 	}
-	err = recordID.SetString(t.Column("content"), record.content)
+	err = t.Column("content").SetString(recordID, record.content)
 	if err != nil {
 		return err
 	}
-	return recordID.SetTime(t.Column("updated_at"), record.updatedAt)
+	return t.Column("updated_at").SetTime(recordID, record.updatedAt)
 }
 
 func getTable1Record(t *Table, recordID ID) table1 {
 	return table1{
 		key:       t.GetKey(recordID),
-		content:   recordID.GetString(t.Column("content")),
-		updatedAt: recordID.GetTime(t.Column("updated_at")),
+		content:   t.Column("content").GetString(recordID),
+		updatedAt: t.Column("updated_at").GetTime(recordID),
 	}
 }
 
@@ -471,7 +471,7 @@ func TestGetRecord(t *testing.T) {
 	if !found {
 		t.Errorf("the record should be found for key: \"%s\"", key)
 	}
-	content := recordID.GetString(contentColumn)
+	content := contentColumn.GetString(recordID)
 	if content != "content2" {
 		t.Errorf("content mismatch: want %s, got %s", "content2", content)
 	}

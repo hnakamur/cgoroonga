@@ -7,6 +7,8 @@ package cgoroonga
 import "C"
 import "unsafe"
 
+type ID int
+
 type DB struct {
 	context *Context
 	cDB     *C.grn_obj

@@ -49,11 +49,11 @@ func TestSetStringAndGetString(t *testing.T) {
 	}
 
 	value := "bar"
-	err = recordID.SetString(column, value)
+	err = column.SetString(recordID, value)
 	if err != nil {
 		t.Errorf("failed to set a value to record with error: %s", err)
 	}
-	actualValue := recordID.GetString(column)
+	actualValue := column.GetString(recordID)
 	if actualValue != value {
 		t.Errorf("record value mismatch: want %s, got %s", value,
 			actualValue)
@@ -85,12 +85,12 @@ func TestSetTimeAndGetTime(t *testing.T) {
 	}
 
 	value := time.Unix(123456789, 987654321)
-	err = recordID.SetTime(column, value)
+	err = column.SetTime(recordID, value)
 	if err != nil {
 		t.Errorf("failed to set a value to record with error: %s", err)
 	}
 	want := value.UnixNano() / 1000
-	got := recordID.GetTime(column).UnixNano() / 1000
+	got := column.GetTime(recordID).UnixNano() / 1000
 	if got != want {
 		t.Errorf("record value mismatch: want %s, got %s", want, got)
 	}
