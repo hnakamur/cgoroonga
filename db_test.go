@@ -34,7 +34,7 @@ func TestCreateTableAndRemove(t *testing.T) {
 	defer db.Remove()
 
 	shortTextType := ctx.At(DB_SHORT_TEXT)
-	defer shortTextType.unlink()
+	defer shortTextType.Unlink()
 
 	tableName := "Table1"
 	tablePath := dbPath + ".Table1"
@@ -98,7 +98,7 @@ func TestOpenTableAndClose(t *testing.T) {
 	defer db.Remove()
 
 	shortTextType := ctx.At(DB_SHORT_TEXT)
-	defer shortTextType.unlink()
+	defer shortTextType.Unlink()
 
 	table, err := db.CreateTable("Table1", "",
 		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT,
@@ -174,7 +174,7 @@ func TestOpenOrCreateTable(t *testing.T) {
 	defer db.Remove()
 
 	shortTextType := ctx.At(DB_SHORT_TEXT)
-	defer shortTextType.unlink()
+	defer shortTextType.Unlink()
 
 	table, err := db.OpenOrCreateTable("Table1", "",
 		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT,

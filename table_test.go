@@ -35,9 +35,9 @@ func TestCreateColumnAndRemove(t *testing.T) {
 	defer db.Remove()
 
 	shortTextType := ctx.At(DB_SHORT_TEXT)
-	defer shortTextType.unlink()
+	defer shortTextType.Unlink()
 	textType := ctx.At(DB_TEXT)
-	defer textType.unlink()
+	defer textType.Unlink()
 
 	tableName := "Table1"
 	tablePath := dbPath + "." + tableName
@@ -124,9 +124,9 @@ func TestCreateColumnWithDefaultPathAndRemove(t *testing.T) {
 	}()
 
 	shortTextType := ctx.At(DB_SHORT_TEXT)
-	defer shortTextType.unlink()
+	defer shortTextType.Unlink()
 	textType := ctx.At(DB_TEXT)
-	defer textType.unlink()
+	defer textType.Unlink()
 
 	table, err := db.CreateTable("Table1", "",
 		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
@@ -176,9 +176,9 @@ func TestOpenColumnAndClose(t *testing.T) {
 	defer db.Remove()
 
 	shortTextType := ctx.At(DB_SHORT_TEXT)
-	defer shortTextType.unlink()
+	defer shortTextType.Unlink()
 	textType := ctx.At(DB_TEXT)
-	defer textType.unlink()
+	defer textType.Unlink()
 
 	table, err := db.CreateTable("Table1", "",
 		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
@@ -226,7 +226,7 @@ func TestOpenNonExistingColumn(t *testing.T) {
 	defer db.Remove()
 
 	shortTextType := ctx.At(DB_SHORT_TEXT)
-	defer shortTextType.unlink()
+	defer shortTextType.Unlink()
 
 	table, err := db.CreateTable("Table1", "",
 		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
@@ -267,9 +267,9 @@ func TestOpenOrCreateColumn(t *testing.T) {
 	defer db.Remove()
 
 	shortTextType := ctx.At(DB_SHORT_TEXT)
-	defer shortTextType.unlink()
+	defer shortTextType.Unlink()
 	textType := ctx.At(DB_TEXT)
-	defer textType.unlink()
+	defer textType.Unlink()
 
 	table, err := db.CreateTable("Table1", "",
 		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
@@ -326,11 +326,11 @@ func TestSelect(t *testing.T) {
 	defer tearDownTestDB(t, tempDir, ctx, db)
 
 	shortTextType := ctx.At(DB_SHORT_TEXT)
-	defer shortTextType.unlink()
+	defer shortTextType.Unlink()
 	textType := ctx.At(DB_TEXT)
-	defer textType.unlink()
+	defer textType.Unlink()
 	timeType := ctx.At(DB_TIME)
-	defer timeType.unlink()
+	defer timeType.Unlink()
 
 	table, err := db.CreateTable("Table1", "",
 		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
@@ -394,11 +394,11 @@ func TestSetDefaultTokenizer(t *testing.T) {
 	defer tearDownTestDB(t, tempDir, ctx, db)
 
 	shortTextType := ctx.At(DB_SHORT_TEXT)
-	defer shortTextType.unlink()
+	defer shortTextType.Unlink()
 	textType := ctx.At(DB_TEXT)
-	defer textType.unlink()
+	defer textType.Unlink()
 	timeType := ctx.At(DB_TIME)
-	defer timeType.unlink()
+	defer timeType.Unlink()
 
 	table, err := db.CreateTable("Table1", "",
 		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
@@ -433,7 +433,7 @@ func TestCreateColumnWithSource(t *testing.T) {
 	defer tearDownTestDB(t, tempDir, ctx, db)
 
 	shortTextType := ctx.At(DB_SHORT_TEXT)
-	defer shortTextType.unlink()
+	defer shortTextType.Unlink()
 
 	tagTable, err := db.CreateTable("Tag", "",
 		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
@@ -469,11 +469,11 @@ func TestCreateIndexColumn(t *testing.T) {
 	defer tearDownTestDB(t, tempDir, ctx, db)
 
 	shortTextType := ctx.At(DB_SHORT_TEXT)
-	defer shortTextType.unlink()
+	defer shortTextType.Unlink()
 	textType := ctx.At(DB_TEXT)
-	defer textType.unlink()
+	defer textType.Unlink()
 	timeType := ctx.At(DB_TIME)
-	defer timeType.unlink()
+	defer timeType.Unlink()
 
 	table, err := db.CreateTable("Table1", "",
 		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
@@ -514,11 +514,11 @@ func TestGetRecord(t *testing.T) {
 	defer tearDownTestDB(t, tempDir, ctx, db)
 
 	shortTextType := ctx.At(DB_SHORT_TEXT)
-	defer shortTextType.unlink()
+	defer shortTextType.Unlink()
 	textType := ctx.At(DB_TEXT)
-	defer textType.unlink()
+	defer textType.Unlink()
 	timeType := ctx.At(DB_TIME)
-	defer timeType.unlink()
+	defer timeType.Unlink()
 
 	table, err := db.CreateTable("Table1", "",
 		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
@@ -569,11 +569,11 @@ func TestLock(t *testing.T) {
 	defer tearDownTestDB(t, tempDir, ctx, db)
 
 	shortTextType := ctx.At(DB_SHORT_TEXT)
-	defer shortTextType.unlink()
+	defer shortTextType.Unlink()
 	textType := ctx.At(DB_TEXT)
-	defer textType.unlink()
+	defer textType.Unlink()
 	timeType := ctx.At(DB_TIME)
-	defer timeType.unlink()
+	defer timeType.Unlink()
 
 	table, err := db.CreateTable("Table1", "",
 		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)

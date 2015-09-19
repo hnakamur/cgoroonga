@@ -12,7 +12,7 @@ type Obj struct {
 	cObj *C.grn_obj
 }
 
-func (o *Obj) unlink() {
+func (o *Obj) Unlink() {
 	if o.cObj == nil {
 		return
 	}

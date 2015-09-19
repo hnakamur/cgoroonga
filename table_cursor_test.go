@@ -7,11 +7,11 @@ func TestOpenTableCursor(t *testing.T) {
 	defer tearDownTestDB(t, tempDir, ctx, db)
 
 	shortTextType := ctx.At(DB_SHORT_TEXT)
-	defer shortTextType.unlink()
+	defer shortTextType.Unlink()
 	textType := ctx.At(DB_TEXT)
-	defer textType.unlink()
+	defer textType.Unlink()
 	timeType := ctx.At(DB_TIME)
-	defer timeType.unlink()
+	defer timeType.Unlink()
 
 	table, err := db.CreateTable("Table1", "",
 		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
