@@ -13,6 +13,10 @@ type Records struct {
 	columns  map[string]*Column
 }
 
+func (r *Records) AsObj() *Obj {
+	return &Obj{cCtx: r.db.context.cCtx, cObj: r.cRecords}
+}
+
 func (r *Records) GetKey(id ID) string {
 	cCtx := r.db.context.cCtx
 	cRecords := r.cRecords

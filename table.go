@@ -11,6 +11,10 @@ static void init_source_ids(grn_obj *obj) {
 static void append_source_id(grn_ctx *ctx, grn_obj *source_ids, grn_id source_id) {
 	GRN_UINT32_PUT(ctx, source_ids, source_id);
 }
+
+static unsigned char obj_header_type(grn_obj *obj) {
+	return obj->header.type;
+}
 */
 import "C"
 import "unsafe"
@@ -19,55 +23,42 @@ type Table struct {
 	*Records
 }
 
-func (t *Table) CreateColumn(name, path string, flags int, columnType *Obj) (*Column, error) {
+func (t *Table) CreateColumn(name, path string, flags int, type_ *Obj, source ...string) (*Column, error) {
 	cCtx := t.db.context.cCtx
-	if columnType == nil {
+	if type_ == nil {
 		return nil, InvalidArgumentError
 	}
-	cColumnType := columnType.cObj
-	cColumn := grnColumnCreate(cCtx, t.cRecords, name, path, flags, cColumnType)
+	cType := type_.cObj
+	cColumn := grnColumnCreate(cCtx, t.cRecords, name, path, flags, cType)
 	if cColumn == nil {
 		return nil, errorFromRc(cCtx.rc)
 	}
-	column := &Column{table: t, cColumn: cColumn}
-	t.addColumnToMap(name, column)
-	return column, nil
-}
-
-func (t *Table) CreateIndexColumn(name, path string, flags int, sourceType string, source ...string) (*Column, error) {
-	cCtx := t.db.context.cCtx
-
-	cSourceType := grnCtxGet(cCtx, sourceType)
-	if cSourceType == nil {
-		return nil, InvalidArgumentError
-	}
-	defer C.grn_obj_unlink(cCtx, cSourceType)
-
-	cColumn := grnColumnCreate(cCtx, t.cRecords, name, path, flags, cSourceType)
-	if cColumn == nil {
-		return nil, errorFromRc(cCtx.rc)
-	}
-
-	var sourceIDs C.grn_obj
-	C.init_source_ids(&sourceIDs)
-	defer C.grn_obj_unlink(cCtx, &sourceIDs)
-	for _, s := range source {
-		var sourceID C.grn_id
-		if s == "_key" {
-			sourceID = C.grn_obj_id(cCtx, cSourceType)
-		} else {
-			cSrcColumn := grnObjColumn(cCtx, cSourceType, s)
-			if cSrcColumn == nil {
+	if len(source) > 0 {
+		var sourceIDs C.grn_obj
+		C.init_source_ids(&sourceIDs)
+		defer C.grn_obj_unlink(cCtx, &sourceIDs)
+		for _, s := range source {
+			cSourceColumn := grnObjColumn(cCtx, cType, s)
+			if cSourceColumn == nil {
 				return nil, InvalidArgumentError
 			}
-			sourceID = C.grn_obj_id(cCtx, cSrcColumn)
-			C.grn_obj_unlink(cCtx, cSrcColumn)
+
+			var sourceID C.grn_id
+			if C.obj_header_type(cSourceColumn) == C.GRN_ACCESSOR {
+				if s != "_key" {
+					return nil, InvalidArgumentError
+				}
+				sourceID = C.grn_obj_id(cCtx, t.cRecords)
+			} else {
+				sourceID = C.grn_obj_id(cCtx, cSourceColumn)
+			}
+			C.append_source_id(cCtx, &sourceIDs, sourceID)
+			C.grn_obj_unlink(cCtx, cSourceColumn)
 		}
-		C.append_source_id(cCtx, &sourceIDs, sourceID)
-	}
-	rc := C.grn_obj_set_info(cCtx, cColumn, C.GRN_INFO_SOURCE, &sourceIDs)
-	if rc != SUCCESS {
-		return nil, errorFromRc(rc)
+		rc := C.grn_obj_set_info(cCtx, cColumn, C.GRN_INFO_SOURCE, &sourceIDs)
+		if rc != SUCCESS {
+			return nil, errorFromRc(rc)
+		}
 	}
 	column := &Column{table: t, cColumn: cColumn}
 	t.addColumnToMap(name, column)
@@ -93,13 +84,13 @@ func grnColumnCreate(cCtx *C.grn_ctx, cTable *C.grn_obj, name, path string, flag
 		cPath, C.grn_obj_flags(flags), type_)
 }
 
-func (t *Table) OpenOrCreateColumn(name, path string, flags int, columnType *Obj) (*Column, error) {
+func (t *Table) OpenOrCreateColumn(name, path string, flags int, type_ *Obj, source ...string) (*Column, error) {
 	column, err := t.OpenColumn(name)
 	if err != nil {
 		if err != NotFoundError {
 			return nil, err
 		}
-		column, err = t.CreateColumn(name, path, flags, columnType)
+		column, err = t.CreateColumn(name, path, flags, type_, source...)
 	}
 	return column, err
 }

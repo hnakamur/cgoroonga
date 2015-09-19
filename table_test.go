@@ -428,6 +428,42 @@ func TestSetDefaultTokenizer(t *testing.T) {
 	}
 }
 
+func TestCreateColumnWithSource(t *testing.T) {
+	tempDir, ctx, db := setupTestDB(t, "goroonga-TestCreateColumnWithSource-")
+	defer tearDownTestDB(t, tempDir, ctx, db)
+
+	shortTextType := ctx.At(DB_SHORT_TEXT)
+	defer shortTextType.unlink()
+
+	tagTable, err := db.CreateTable("Tag", "",
+		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
+	if err != nil {
+		t.Errorf("failed to create a bookmarkTable with error: %s", err)
+	}
+
+	bookmarkTable, err := db.CreateTable("Bookmark", "",
+		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
+	if err != nil {
+		t.Errorf("failed to create a bookmarkTable with error: %s", err)
+	}
+	_, err = bookmarkTable.CreateColumn("title", "",
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, shortTextType)
+	if err != nil {
+		t.Errorf("failed to create a column with error: %s", err)
+	}
+	_, err = bookmarkTable.CreateColumn("tags", "",
+		OBJ_PERSISTENT|OBJ_COLUMN_VECTOR, tagTable.AsObj())
+	if err != nil {
+		t.Errorf("failed to create a column with error: %s", err)
+	}
+
+	_, err = tagTable.CreateColumn("index_tags", "",
+		OBJ_PERSISTENT|OBJ_COLUMN_INDEX, bookmarkTable.AsObj(), "tags")
+	if err != nil {
+		t.Errorf("failed to create a column with error: %s", err)
+	}
+}
+
 func TestCreateIndexColumn(t *testing.T) {
 	tempDir, ctx, db := setupTestDB(t, "goroonga-TestCreateIndexColumn-")
 	defer tearDownTestDB(t, tempDir, ctx, db)
@@ -465,9 +501,9 @@ func TestCreateIndexColumn(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to set default tokenizer: %s", err)
 	}
-	_, err = idxTable.CreateIndexColumn("table1_index", "",
+	_, err = idxTable.CreateColumn("table1_index", "",
 		OBJ_PERSISTENT|OBJ_COLUMN_INDEX|OBJ_WITH_POSITION|OBJ_WITH_SECTION,
-		"Table1", "_key", "content")
+		table.AsObj(), "_key", "content")
 	if err != nil {
 		t.Errorf("failed to create a column with error: %s", err)
 	}
