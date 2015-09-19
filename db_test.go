@@ -33,11 +33,14 @@ func TestCreateTableAndRemove(t *testing.T) {
 	}
 	defer db.Remove()
 
+	shortTextType := ctx.At(DB_SHORT_TEXT)
+	defer shortTextType.unlink()
+
 	tableName := "Table1"
 	tablePath := dbPath + ".Table1"
 	table, err := db.CreateTable(tableName, tablePath,
 		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT,
-		DB_SHORT_TEXT)
+		shortTextType)
 	if err != nil {
 		t.Errorf("failed to create a table with error: %s", err)
 	}
@@ -94,9 +97,12 @@ func TestOpenTableAndClose(t *testing.T) {
 	}
 	defer db.Remove()
 
+	shortTextType := ctx.At(DB_SHORT_TEXT)
+	defer shortTextType.unlink()
+
 	table, err := db.CreateTable("Table1", "",
 		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT,
-		DB_SHORT_TEXT)
+		shortTextType)
 	if err != nil {
 		t.Errorf("failed to create a table with error: %s", err)
 	}
@@ -167,9 +173,12 @@ func TestOpenOrCreateTable(t *testing.T) {
 	}
 	defer db.Remove()
 
+	shortTextType := ctx.At(DB_SHORT_TEXT)
+	defer shortTextType.unlink()
+
 	table, err := db.OpenOrCreateTable("Table1", "",
 		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT,
-		DB_SHORT_TEXT)
+		shortTextType)
 	if err != nil {
 		t.Errorf("failed to create a table with error: %s", err)
 	}

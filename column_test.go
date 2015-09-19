@@ -12,14 +12,19 @@ func TestSetStringAndGetString(t *testing.T) {
 	tempDir, ctx, db := setupTestDB(t, "goroonga-TestSetTimeAndGetTime-")
 	defer tearDownTestDB(t, tempDir, ctx, db)
 
+	shortTextType := ctx.At(DB_SHORT_TEXT)
+	defer shortTextType.unlink()
+	textType := ctx.At(DB_TEXT)
+	defer textType.unlink()
+
 	table, err := db.CreateTable("Table1", "",
-		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, DB_SHORT_TEXT)
+		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
 	if err != nil {
 		t.Errorf("failed to create a table with error: %s", err)
 	}
 
 	column, err := table.CreateColumn("column1", "",
-		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TEXT)
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, textType)
 	if err != nil {
 		t.Errorf("failed to create a column with error: %s", err)
 	}
@@ -64,14 +69,19 @@ func TestSetTimeAndGetTime(t *testing.T) {
 	tempDir, ctx, db := setupTestDB(t, "goroonga-TestSetTimeAndGetTime-")
 	defer tearDownTestDB(t, tempDir, ctx, db)
 
+	shortTextType := ctx.At(DB_SHORT_TEXT)
+	defer shortTextType.unlink()
+	timeType := ctx.At(DB_TIME)
+	defer timeType.unlink()
+
 	table, err := db.CreateTable("Table1", "",
-		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, DB_SHORT_TEXT)
+		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
 	if err != nil {
 		t.Errorf("failed to create a table with error: %s", err)
 	}
 
 	column, err := table.CreateColumn("column1", "",
-		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TIME)
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, timeType)
 	if err != nil {
 		t.Errorf("failed to create a column with error: %s", err)
 	}

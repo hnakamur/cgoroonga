@@ -35,7 +35,7 @@ func (d *DB) Remove() error {
 	return err
 }
 
-func (d *DB) CreateTable(name, path string, flags, keyType int) (*Table, error) {
+func (d *DB) CreateTable(name, path string, flags int, keyType *Obj) (*Table, error) {
 	var cName *C.char
 	var cNameLen C.size_t
 	if name != "" {
@@ -51,12 +51,12 @@ func (d *DB) CreateTable(name, path string, flags, keyType int) (*Table, error) 
 	}
 
 	cCtx := d.context.cCtx
-	keyTypeObj := C.grn_ctx_at(cCtx, C.grn_id(keyType))
-	if keyTypeObj == nil {
+	if keyType == nil {
 		return nil, InvalidArgumentError
 	}
+	cKeyType := keyType.cObj
 	cTable := C.grn_table_create(cCtx, cName, C.uint(cNameLen),
-		cPath, C.grn_obj_flags(flags), keyTypeObj, nil)
+		cPath, C.grn_obj_flags(flags), cKeyType, nil)
 	if cTable == nil {
 		return nil, errorFromRc(cCtx.rc)
 	}
@@ -82,7 +82,7 @@ func (d *DB) OpenTable(name string) (*Table, error) {
 	return &Table{&Records{db: d, cRecords: cTable}}, nil
 }
 
-func (d *DB) OpenOrCreateTable(name, path string, flags, keyType int) (*Table, error) {
+func (d *DB) OpenOrCreateTable(name, path string, flags int, keyType *Obj) (*Table, error) {
 	table, err := d.OpenTable(name)
 	if err != nil {
 		if err != NotFoundError {

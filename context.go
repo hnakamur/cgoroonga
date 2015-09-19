@@ -112,6 +112,14 @@ func (c *Context) CreateExpr(name string) (*Expr, error) {
 	return &Expr{context: c, cExpr: cExpr}, nil
 }
 
+func (c *Context) At(id int) *Obj {
+	cObj := C.grn_ctx_at(c.cCtx, C.grn_id(id))
+	if cObj == nil {
+		return nil
+	}
+	return &Obj{cCtx: c.cCtx, cObj: cObj}
+}
+
 func grnCtxGet(cCtx *C.grn_ctx, name string) *C.grn_obj {
 	cName := C.CString(name)
 	defer C.free(unsafe.Pointer(cName))

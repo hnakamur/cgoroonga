@@ -19,13 +19,13 @@ type Table struct {
 	*Records
 }
 
-func (t *Table) CreateColumn(name, path string, flags, columnType int) (*Column, error) {
+func (t *Table) CreateColumn(name, path string, flags int, columnType *Obj) (*Column, error) {
 	cCtx := t.db.context.cCtx
-	columnTypeObj := C.grn_ctx_at(cCtx, C.grn_id(columnType))
-	if columnTypeObj == nil {
+	if columnType == nil {
 		return nil, InvalidArgumentError
 	}
-	cColumn := grnColumnCreate(cCtx, t.cRecords, name, path, flags, columnTypeObj)
+	cColumnType := columnType.cObj
+	cColumn := grnColumnCreate(cCtx, t.cRecords, name, path, flags, cColumnType)
 	if cColumn == nil {
 		return nil, errorFromRc(cCtx.rc)
 	}
@@ -93,7 +93,7 @@ func grnColumnCreate(cCtx *C.grn_ctx, cTable *C.grn_obj, name, path string, flag
 		cPath, C.grn_obj_flags(flags), type_)
 }
 
-func (t *Table) OpenOrCreateColumn(name, path string, flags, columnType int) (*Column, error) {
+func (t *Table) OpenOrCreateColumn(name, path string, flags int, columnType *Obj) (*Column, error) {
 	column, err := t.OpenColumn(name)
 	if err != nil {
 		if err != NotFoundError {

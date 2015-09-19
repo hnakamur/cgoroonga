@@ -7,6 +7,19 @@ package cgoroonga
 import "C"
 import "unsafe"
 
+type Obj struct {
+	cCtx *C.grn_ctx
+	cObj *C.grn_obj
+}
+
+func (o *Obj) unlink() {
+	if o.cObj == nil {
+		return
+	}
+	unlinkObj(o.cCtx, o.cObj)
+	o.cObj = nil
+}
+
 func unlinkObj(ctx *C.grn_ctx, obj *C.grn_obj) {
 	C.grn_obj_unlink(ctx, obj)
 }

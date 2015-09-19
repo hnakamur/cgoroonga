@@ -34,10 +34,15 @@ func TestCreateColumnAndRemove(t *testing.T) {
 	}
 	defer db.Remove()
 
+	shortTextType := ctx.At(DB_SHORT_TEXT)
+	defer shortTextType.unlink()
+	textType := ctx.At(DB_TEXT)
+	defer textType.unlink()
+
 	tableName := "Table1"
 	tablePath := dbPath + "." + tableName
 	table, err := db.CreateTable(tableName, tablePath,
-		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, DB_SHORT_TEXT)
+		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
 	if err != nil {
 		t.Errorf("failed to create a table with error: %s", err)
 	}
@@ -46,7 +51,7 @@ func TestCreateColumnAndRemove(t *testing.T) {
 	columnName := "column1"
 	columnPath := tablePath + "." + columnName
 	column, err := table.CreateColumn(columnName, columnPath,
-		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TEXT)
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, textType)
 	if err != nil {
 		t.Errorf("failed to create a column with error: %s", err)
 	}
@@ -118,8 +123,13 @@ func TestCreateColumnWithDefaultPathAndRemove(t *testing.T) {
 		}
 	}()
 
+	shortTextType := ctx.At(DB_SHORT_TEXT)
+	defer shortTextType.unlink()
+	textType := ctx.At(DB_TEXT)
+	defer textType.unlink()
+
 	table, err := db.CreateTable("Table1", "",
-		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, DB_SHORT_TEXT)
+		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
 	if err != nil {
 		t.Errorf("failed to create a table with error: %s", err)
 	}
@@ -129,7 +139,7 @@ func TestCreateColumnWithDefaultPathAndRemove(t *testing.T) {
 	}
 
 	column, err := table.CreateColumn("column1", "",
-		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TEXT)
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, textType)
 	if err != nil {
 		t.Errorf("failed to create a column with error: %s", err)
 	}
@@ -165,14 +175,19 @@ func TestOpenColumnAndClose(t *testing.T) {
 	}
 	defer db.Remove()
 
+	shortTextType := ctx.At(DB_SHORT_TEXT)
+	defer shortTextType.unlink()
+	textType := ctx.At(DB_TEXT)
+	defer textType.unlink()
+
 	table, err := db.CreateTable("Table1", "",
-		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, DB_SHORT_TEXT)
+		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
 	if err != nil {
 		t.Errorf("failed to create a table with error: %s", err)
 	}
 
 	column, err := table.CreateColumn("column1", "",
-		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TEXT)
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, textType)
 	if err != nil {
 		t.Errorf("failed to create a column with error: %s", err)
 	}
@@ -210,8 +225,11 @@ func TestOpenNonExistingColumn(t *testing.T) {
 	}
 	defer db.Remove()
 
+	shortTextType := ctx.At(DB_SHORT_TEXT)
+	defer shortTextType.unlink()
+
 	table, err := db.CreateTable("Table1", "",
-		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, DB_SHORT_TEXT)
+		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
 	if err != nil {
 		t.Errorf("failed to create a table with error: %s", err)
 	}
@@ -248,14 +266,19 @@ func TestOpenOrCreateColumn(t *testing.T) {
 	}
 	defer db.Remove()
 
+	shortTextType := ctx.At(DB_SHORT_TEXT)
+	defer shortTextType.unlink()
+	textType := ctx.At(DB_TEXT)
+	defer textType.unlink()
+
 	table, err := db.CreateTable("Table1", "",
-		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, DB_SHORT_TEXT)
+		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
 	if err != nil {
 		t.Errorf("failed to create a table with error: %s", err)
 	}
 
 	column, err := table.OpenOrCreateColumn("column1", "",
-		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TEXT)
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, textType)
 	if err != nil {
 		t.Errorf("failed to create a column with error: %s", err)
 	}
@@ -302,20 +325,27 @@ func TestSelect(t *testing.T) {
 	tempDir, ctx, db := setupTestDB(t, "goroonga-TestSelect-")
 	defer tearDownTestDB(t, tempDir, ctx, db)
 
+	shortTextType := ctx.At(DB_SHORT_TEXT)
+	defer shortTextType.unlink()
+	textType := ctx.At(DB_TEXT)
+	defer textType.unlink()
+	timeType := ctx.At(DB_TIME)
+	defer timeType.unlink()
+
 	table, err := db.CreateTable("Table1", "",
-		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, DB_SHORT_TEXT)
+		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
 	if err != nil {
 		t.Errorf("failed to create a table with error: %s", err)
 	}
 
 	_, err = table.CreateColumn("content", "",
-		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TEXT)
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, textType)
 	if err != nil {
 		t.Errorf("failed to create a column with error: %s", err)
 	}
 
 	_, err = table.CreateColumn("updated_at", "",
-		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TIME)
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, timeType)
 	if err != nil {
 		t.Errorf("failed to create a column with error: %s", err)
 	}
@@ -363,24 +393,31 @@ func TestSetDefaultTokenizer(t *testing.T) {
 	tempDir, ctx, db := setupTestDB(t, "goroonga-TestSetDefaultTokenizer-")
 	defer tearDownTestDB(t, tempDir, ctx, db)
 
+	shortTextType := ctx.At(DB_SHORT_TEXT)
+	defer shortTextType.unlink()
+	textType := ctx.At(DB_TEXT)
+	defer textType.unlink()
+	timeType := ctx.At(DB_TIME)
+	defer timeType.unlink()
+
 	table, err := db.CreateTable("Table1", "",
-		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, DB_SHORT_TEXT)
+		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
 	if err != nil {
 		t.Errorf("failed to create a table with error: %s", err)
 	}
 	_, err = table.CreateColumn("content", "",
-		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TEXT)
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, textType)
 	if err != nil {
 		t.Errorf("failed to create a column with error: %s", err)
 	}
 	_, err = table.CreateColumn("updated_at", "",
-		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TIME)
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, timeType)
 	if err != nil {
 		t.Errorf("failed to create a column with error: %s", err)
 	}
 
 	idxTable, err := db.CreateTable("Table1Index", "",
-		OBJ_TABLE_PAT_KEY|OBJ_KEY_NORMALIZE|OBJ_PERSISTENT, DB_SHORT_TEXT)
+		OBJ_TABLE_PAT_KEY|OBJ_KEY_NORMALIZE|OBJ_PERSISTENT, shortTextType)
 	if err != nil {
 		t.Errorf("failed to create an index table with error: %s", err)
 	}
@@ -395,24 +432,31 @@ func TestCreateIndexColumn(t *testing.T) {
 	tempDir, ctx, db := setupTestDB(t, "goroonga-TestCreateIndexColumn-")
 	defer tearDownTestDB(t, tempDir, ctx, db)
 
+	shortTextType := ctx.At(DB_SHORT_TEXT)
+	defer shortTextType.unlink()
+	textType := ctx.At(DB_TEXT)
+	defer textType.unlink()
+	timeType := ctx.At(DB_TIME)
+	defer timeType.unlink()
+
 	table, err := db.CreateTable("Table1", "",
-		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, DB_SHORT_TEXT)
+		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
 	if err != nil {
 		t.Errorf("failed to create a table with error: %s", err)
 	}
 	_, err = table.CreateColumn("content", "",
-		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TEXT)
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, textType)
 	if err != nil {
 		t.Errorf("failed to create a column with error: %s", err)
 	}
 	_, err = table.CreateColumn("updated_at", "",
-		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TIME)
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, timeType)
 	if err != nil {
 		t.Errorf("failed to create a column with error: %s", err)
 	}
 
 	idxTable, err := db.CreateTable("Table1Index", "",
-		OBJ_TABLE_PAT_KEY|OBJ_KEY_NORMALIZE|OBJ_PERSISTENT, DB_SHORT_TEXT)
+		OBJ_TABLE_PAT_KEY|OBJ_KEY_NORMALIZE|OBJ_PERSISTENT, shortTextType)
 	if err != nil {
 		t.Errorf("failed to create an index table with error: %s", err)
 	}
@@ -433,20 +477,27 @@ func TestGetRecord(t *testing.T) {
 	tempDir, ctx, db := setupTestDB(t, "goroonga-TestGetRecord-")
 	defer tearDownTestDB(t, tempDir, ctx, db)
 
+	shortTextType := ctx.At(DB_SHORT_TEXT)
+	defer shortTextType.unlink()
+	textType := ctx.At(DB_TEXT)
+	defer textType.unlink()
+	timeType := ctx.At(DB_TIME)
+	defer timeType.unlink()
+
 	table, err := db.CreateTable("Table1", "",
-		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, DB_SHORT_TEXT)
+		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
 	if err != nil {
 		t.Errorf("failed to create a table with error: %s", err)
 	}
 
 	contentColumn, err := table.CreateColumn("content", "",
-		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TEXT)
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, textType)
 	if err != nil {
 		t.Errorf("failed to create a column with error: %s", err)
 	}
 
 	_, err = table.CreateColumn("updated_at", "",
-		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TIME)
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, timeType)
 	if err != nil {
 		t.Errorf("failed to create a column with error: %s", err)
 	}
@@ -481,20 +532,27 @@ func TestLock(t *testing.T) {
 	tempDir, ctx, db := setupTestDB(t, "goroonga-TestLock-")
 	defer tearDownTestDB(t, tempDir, ctx, db)
 
+	shortTextType := ctx.At(DB_SHORT_TEXT)
+	defer shortTextType.unlink()
+	textType := ctx.At(DB_TEXT)
+	defer textType.unlink()
+	timeType := ctx.At(DB_TIME)
+	defer timeType.unlink()
+
 	table, err := db.CreateTable("Table1", "",
-		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, DB_SHORT_TEXT)
+		OBJ_TABLE_HASH_KEY|OBJ_PERSISTENT, shortTextType)
 	if err != nil {
 		t.Errorf("failed to create a table with error: %s", err)
 	}
 
 	_, err = table.CreateColumn("content", "",
-		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TEXT)
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, textType)
 	if err != nil {
 		t.Errorf("failed to create a column with error: %s", err)
 	}
 
 	_, err = table.CreateColumn("updated_at", "",
-		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, DB_TIME)
+		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, timeType)
 	if err != nil {
 		t.Errorf("failed to create a column with error: %s", err)
 	}
