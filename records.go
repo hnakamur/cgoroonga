@@ -100,6 +100,10 @@ func (r *Records) OpenColumn(name string) (*Column, error) {
 	return column, nil
 }
 
+func (r *Records) OpenKeyColumn() (*Column, error) {
+	return r.OpenColumn("_key")
+}
+
 func grnObjColumn(cCtx *C.grn_ctx, cTable *C.grn_obj, name string) *C.grn_obj {
 	var cName *C.char
 	var cNameLen C.size_t

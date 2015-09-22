@@ -11,10 +11,6 @@ static void init_source_ids(grn_obj *obj) {
 static void append_source_id(grn_ctx *ctx, grn_obj *source_ids, grn_id source_id) {
 	GRN_UINT32_PUT(ctx, source_ids, source_id);
 }
-
-static unsigned char obj_header_type(grn_obj *obj) {
-	return obj->header.type;
-}
 */
 import "C"
 import "unsafe"
@@ -44,7 +40,7 @@ func (t *Table) CreateColumn(name, path string, flags int, type_ *Obj, source ..
 			}
 
 			var sourceID C.grn_id
-			if C.obj_header_type(cSourceColumn) == C.GRN_ACCESSOR {
+			if C.cgoroonga_obj_header_type(cSourceColumn) == C.GRN_ACCESSOR {
 				if s != "_key" {
 					return nil, InvalidArgumentError
 				}

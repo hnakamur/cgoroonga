@@ -127,3 +127,7 @@ func grnCtxGet(cCtx *C.grn_ctx, name string) *C.grn_obj {
 
 	return C.grn_ctx_get(cCtx, cName, C.int(cNameLen))
 }
+
+func grnCtxErrMsg(cCtx *C.grn_ctx) string {
+	return C.GoString(&cCtx.errbuf[0])
+}

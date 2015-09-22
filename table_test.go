@@ -446,12 +446,12 @@ func TestCreateColumnWithSource(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to create a bookmarkTable with error: %s", err)
 	}
-	_, err = bookmarkTable.CreateColumn("title", "",
+	titleColumn, err := bookmarkTable.CreateColumn("title", "",
 		OBJ_PERSISTENT|OBJ_COLUMN_SCALAR, shortTextType)
 	if err != nil {
 		t.Errorf("failed to create a column with error: %s", err)
 	}
-	_, err = bookmarkTable.CreateColumn("tags", "",
+	tagsColumn, err := bookmarkTable.CreateColumn("tags", "",
 		OBJ_PERSISTENT|OBJ_COLUMN_VECTOR, tagTable.AsObj())
 	if err != nil {
 		t.Errorf("failed to create a column with error: %s", err)
@@ -461,6 +461,50 @@ func TestCreateColumnWithSource(t *testing.T) {
 		OBJ_PERSISTENT|OBJ_COLUMN_INDEX, bookmarkTable.AsObj(), "tags")
 	if err != nil {
 		t.Errorf("failed to create a column with error: %s", err)
+	}
+
+	url := "http://golang.org/pkg/"
+	title := "The Go Programming language API document"
+	// NOTE: Include an empty string to test an empty string too
+	tags := []string{"go", "", "api-docs"}
+
+	recordID, _, err := bookmarkTable.AddRecord(url)
+	if err != nil {
+		t.Errorf("failed to add a record with error: %s", err)
+	}
+	err = titleColumn.SetString(recordID, title)
+	if err != nil {
+		t.Errorf("failed to set the title value with error: %s", err)
+	}
+	err = tagsColumn.SetStringArray(recordID, tags)
+	if err != nil {
+		t.Errorf("failed to set the tags value with error: %s", err)
+	}
+
+	keyColumn, err := bookmarkTable.OpenColumn("_key")
+	if err != nil {
+		t.Errorf("failed to open the _key column with error: %s", err)
+	}
+
+	urlGot := keyColumn.GetString(recordID)
+	if urlGot != url {
+		t.Errorf("url mismatch: want %s, got %s", url, urlGot)
+	}
+	titleGot := titleColumn.GetString(recordID)
+	if titleGot != title {
+		t.Errorf("title mismatch: want %s, got %s", title, titleGot)
+	}
+	tagsGot, err := tagsColumn.GetStringArray(recordID)
+	if err != nil {
+		t.Errorf("failed to get the tags value with error: %s", err)
+	}
+	if len(tagsGot) != len(tags) {
+		t.Errorf("tags length mismatch: want %s, got %s", len(tags), len(tagsGot))
+	}
+	for i := 0; i < len(tags); i++ {
+		if tagsGot[i] != tags[i] {
+			t.Errorf("tag mismatch: want %s, got %s", tags[i], tagsGot[i])
+		}
 	}
 }
 
