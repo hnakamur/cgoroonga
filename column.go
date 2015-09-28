@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"time"
 	"unsafe"
-
-	"github.com/hnakamur/stacktrace"
 )
 
 type Column struct {
@@ -91,9 +89,6 @@ func (c *Column) GetString(id ID) string {
 }
 
 func (c *Column) initTextObj(buf *C.grn_obj) {
-	fmt.Printf("initTextObj start. stacktrace=%s\n", stacktrace.LockBufAndGetStackWithSkip(2))
-	stacktrace.UnlockBuf()
-
 	cCtx := c.table.db.context.cCtx
 	range_ := C.grn_obj_get_range(cCtx, c.cColumn)
 	fmt.Printf("initTextObj start. range_=0x%x\n", range_)
