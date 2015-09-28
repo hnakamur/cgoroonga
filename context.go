@@ -120,6 +120,14 @@ func (c *Context) At(id int) *Obj {
 	return &Obj{cCtx: c.cCtx, cObj: cObj}
 }
 
+func (c *Context) Get(name string) *Obj {
+	cObj := grnCtxGet(c.cCtx, name)
+	if cObj == nil {
+		return nil
+	}
+	return &Obj{cCtx: c.cCtx, cObj: cObj}
+}
+
 func grnCtxGet(cCtx *C.grn_ctx, name string) *C.grn_obj {
 	cName := C.CString(name)
 	defer C.free(unsafe.Pointer(cName))
