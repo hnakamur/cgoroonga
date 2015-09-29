@@ -159,6 +159,21 @@ func (r *Records) GetRecord(key string) (recordID ID, found bool) {
 	return
 }
 
+func (r *Records) DeleteRecord(key string) error {
+	cKey := C.CString(key)
+	defer C.free(unsafe.Pointer(cKey))
+	cKeyLen := C.strlen(cKey)
+	rc := C.grn_table_delete(
+		r.db.context.cCtx,
+		r.cRecords,
+		unsafe.Pointer(cKey),
+		C.uint(cKeyLen))
+	if rc != SUCCESS {
+		return errorFromRc(rc)
+	}
+	return nil
+}
+
 func (r *Records) CreateQuery(name string) (*Expr, error) {
 	expr, err := r.db.context.CreateExpr(name)
 	if err != nil {
