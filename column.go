@@ -91,25 +91,19 @@ func (c *Column) GetString(id ID) string {
 func (c *Column) initTextObj(buf *C.grn_obj) {
 	cCtx := c.table.db.context.cCtx
 	range_ := C.grn_obj_get_range(cCtx, c.cColumn)
-	fmt.Printf("initTextObj start. range_=0x%x\n", range_)
 	type_ := C.cgoroonga_obj_header_type(c.cColumn)
-	fmt.Printf("initTextObj start. aype_=0x%x\n", type_)
 	switch {
 	case type_ == C.GRN_COLUMN_VAR_SIZE || type_ == C.GRN_COLUMN_FIX_SIZE:
 		switch C.cgoroonga_obj_header_flags(c.cColumn) & C.GRN_OBJ_COLUMN_TYPE_MASK {
 		case C.GRN_OBJ_COLUMN_VECTOR:
-			fmt.Printf("initTextObj type is COLUMN_VECTOR\n")
 			cRangeObj := C.grn_ctx_at(cCtx, range_)
 			if C.cgoroonga_obj_tablep(c.cColumn) != 0 ||
 				(C.cgoroonga_obj_header_flags(cRangeObj)&C.GRN_OBJ_KEY_VAR_SIZE) == 0 {
-				fmt.Printf("initTextObj init type is GRN_UVECTOR\n")
 				C.cgoroonga_obj_init(buf, C.GRN_UVECTOR, 0, range_)
 			} else {
-				fmt.Printf("initTextObj init type is GRN_VECTOR\n")
 				C.cgoroonga_obj_init(buf, C.GRN_VECTOR, 0, range_)
 			}
 		case C.GRN_OBJ_COLUMN_SCALAR:
-			fmt.Printf("initTextObj type is COLUMN_SCALAR\n")
 			C.cgoroonga_obj_init(buf, C.GRN_BULK, 0, range_)
 		default:
 			panic(fmt.Sprintf("unsupported column flags: %x", C.cgoroonga_obj_header_flags(c.cColumn)))
@@ -117,7 +111,6 @@ func (c *Column) initTextObj(buf *C.grn_obj) {
 	case type_ == C.GRN_COLUMN_INDEX:
 		// Do nothing
 	case type_ == C.GRN_ACCESSOR:
-		fmt.Printf("initTextObj type is ACCESSOR\n")
 		C.cgoroonga_obj_init(buf, C.GRN_BULK, 0, range_)
 	default:
 		panic(fmt.Sprintf("unsupported header type: %x", type_))
@@ -239,32 +232,24 @@ func (c *Column) GetStringArray(id ID) ([]string, error) {
 	if cCtx.rc != SUCCESS {
 		return nil, errorFromRc(cCtx.rc)
 	}
-	fmt.Printf("GetStringArray. after grn_obj_get_value\n")
 
 	type_ := C.cgoroonga_obj_header_type(&vec)
-	fmt.Printf("GetStringArray vec type=0x%x\n", type_)
 	var strings []string
 	switch type_ {
 	case C.GRN_UVECTOR:
 		size := C.grn_uvector_size(cCtx, &vec)
-		fmt.Printf("GetStringArray. uvector size=%d\n", size)
 		strings = make([]string, size)
 		range_ := C.grn_ctx_at(cCtx, C.cgoroonga_obj_header_domain(&vec))
-		fmt.Printf("GetStringArray vec range=0x%x\n", range_)
 		rangeHeaderType := C.cgoroonga_obj_header_type(range_)
-		fmt.Printf("GetStringArray vec rangeHeaderType=0x%x\n", rangeHeaderType)
 		rangeIsType := (rangeHeaderType == C.GRN_TYPE)
-		fmt.Printf("GetStringArray vec rangeIsType=%v\n", rangeIsType)
 		if rangeIsType {
 		} else {
 			var i C.uint
 			for i = 0; i < size; i++ {
 				sourceID := C.grn_uvector_get_element(cCtx, &vec, i, nil)
 				if cCtx.rc != SUCCESS {
-					fmt.Printf("err=%s, errmsg=%s\n", errorFromRc(cCtx.rc), grnCtxErrMsg(cCtx))
 					return nil, errorFromRc(cCtx.rc)
 				}
-				fmt.Printf("GetStringArray. after grn_uvector_get_element. sourceID=%d\n", sourceID)
 				//strings[i] = C.GoString(value)
 			}
 		}
@@ -335,7 +320,6 @@ func (c *Column) GetStringArray(id ID) ([]string, error) {
 
 	case C.GRN_VECTOR:
 		size := C.grn_vector_size(cCtx, &vec)
-		fmt.Printf("GetStringArray. vector size=%d\n", size)
 		strings = make([]string, size)
 		var i C.uint
 		for i = 0; i < size; i++ {
@@ -343,10 +327,8 @@ func (c *Column) GetStringArray(id ID) ([]string, error) {
 			var domain C.grn_id
 			C.grn_vector_get_element(cCtx, &vec, i, &value, nil, &domain)
 			if cCtx.rc != SUCCESS {
-				fmt.Printf("err=%s, errmsg=%s\n", errorFromRc(cCtx.rc), grnCtxErrMsg(cCtx))
 				return nil, errorFromRc(cCtx.rc)
 			}
-			fmt.Printf("GetStringArray. after grn_vector_get_element. value=%s, domain=%d\n", value, domain)
 			strings[i] = C.GoString(value)
 		}
 	default:
