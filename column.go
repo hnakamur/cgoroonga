@@ -250,6 +250,7 @@ func (c *Column) GetStringArray(id ID) ([]string, error) {
 				if cCtx.rc != SUCCESS {
 					return nil, errorFromRc(cCtx.rc)
 				}
+				fmt.Printf("GetStringArray sourceID=%x\n", sourceID)
 				//strings[i] = C.GoString(value)
 			}
 		}
